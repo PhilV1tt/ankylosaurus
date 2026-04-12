@@ -1,4 +1,4 @@
-"""Model discovery via HuggingFace Hub API — never hardcoded."""
+"""Model discovery — pre-computed index with live HF Hub fallback."""
 
 from __future__ import annotations
 
@@ -9,6 +9,9 @@ from datetime import datetime, timezone
 from .decision import RuntimeDecision
 from .detect import HardwareProfile
 from .questionnaire import UserPreferences
+
+INDEX_URL = "https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/data/model_index.json"
+INDEX_MAX_AGE_DAYS = 7
 
 
 @dataclass
@@ -102,6 +105,58 @@ def _days_since(iso_date: str, now: datetime) -> float:
         return 365.0
 
 
+# --- Index ---
+
+def _ram_to_tier(ram_gb: float) -> str:
+    if ram_gb >= 48:
+        return "48gb"
+    if ram_gb >= 32:
+        return "32gb"
+    if ram_gb >= 24:
+        return "24gb"
+    if ram_gb >= 16:
+        return "16gb"
+    return "8gb"
+
+
+def _load_index() -> dict | None:
+    """Try to fetch pre-computed index. Returns None if unavailable or stale."""
+    try:
+        import httpx
+        resp = httpx.get(INDEX_URL, timeout=5, follow_redirects=True)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        # Check freshness
+        gen = data.get("generated_at", "")
+        if gen:
+            age = _days_since(gen, datetime.now(timezone.utc))
+            if age > INDEX_MAX_AGE_DAYS:
+                return None
+        return data
+    except Exception:
+        return None
+
+
+def _index_to_candidates(entries: list[dict], pipeline: str = "text-generation") -> list[ModelCandidate]:
+    """Convert index entries to ModelCandidate objects."""
+    return [
+        ModelCandidate(
+            repo_id=e["repo_id"],
+            pipeline=pipeline,
+            downloads=e.get("downloads", 0),
+            size_gb=e.get("size_gb", 0),
+            format=e.get("format", ""),
+            likes=e.get("likes", 0),
+            trending_score=e.get("trending_score", 0),
+            created_at=e.get("created_at", ""),
+            last_modified=e.get("last_modified", ""),
+            score=e.get("score", 0),
+        )
+        for e in entries
+    ]
+
+
 # --- Search ---
 
 def find_chat_models(
@@ -110,7 +165,28 @@ def find_chat_models(
     prefs: UserPreferences,
     limit: int = 5,
 ) -> list[ModelCandidate]:
-    """Search HF Hub for chat/instruct models matching runtime and hardware."""
+    """Search for chat models. Uses pre-computed index, falls back to live HF Hub."""
+    # Try index first
+    index = _load_index()
+    if index:
+        tier = _ram_to_tier(profile.ram_total_gb)
+        fmt = "mlx" if decision.backend == "mlx" else "gguf"
+        entries = index.get("tiers", {}).get(tier, {}).get(fmt, [])
+        if entries:
+            candidates = _index_to_candidates(entries)
+            # Filter by user disk budget
+            candidates = [c for c in candidates if c.size_gb <= prefs.disk_budget_gb * 0.6]
+            return candidates[:limit]
+
+    # Fallback: live search
+    return _live_chat_search(decision, prefs, limit)
+
+
+def _live_chat_search(
+    decision: RuntimeDecision,
+    prefs: UserPreferences,
+    limit: int,
+) -> list[ModelCandidate]:
     from huggingface_hub import HfApi
 
     api = HfApi()
@@ -119,9 +195,9 @@ def find_chat_models(
     raw_models = api.list_models(
         search=search_term,
         pipeline_tag="text-generation",
-        sort="trending",
-        direction=-1,
+        sort="trending_score",
         limit=100,
+        expand=["safetensors"],
     )
 
     candidates = _filter_candidates(raw_models, decision, prefs)
@@ -135,7 +211,22 @@ def find_embedding_models(
     profile: HardwareProfile,
     limit: int = 5,
 ) -> list[ModelCandidate]:
-    """Search HF Hub for embedding models."""
+    """Search for embedding models. Uses pre-computed index, falls back to live."""
+    index = _load_index()
+    if index:
+        entries = index.get("embeddings", [])
+        fmt = "mlx" if decision.backend == "mlx" else "safetensors"
+        filtered = [e for e in entries if e.get("format") == fmt or fmt == "safetensors"]
+        if filtered:
+            return _index_to_candidates(filtered, "sentence-similarity")[:limit]
+
+    return _live_embedding_search(decision, limit)
+
+
+def _live_embedding_search(
+    decision: RuntimeDecision,
+    limit: int,
+) -> list[ModelCandidate]:
     from huggingface_hub import HfApi
 
     api = HfApi()
@@ -144,9 +235,9 @@ def find_embedding_models(
     raw_models = api.list_models(
         search=search_term,
         pipeline_tag="sentence-similarity",
-        sort="trending",
-        direction=-1,
+        sort="trending_score",
         limit=50,
+        expand=["safetensors"],
     )
 
     candidates: list[ModelCandidate] = []
@@ -218,10 +309,14 @@ def _get_date(model_info, attr: str) -> str:
 
 def _estimate_size(model_info) -> float:
     """Estimate model size in GB from siblings or model card."""
+    model_id = (model_info.id or "").lower()
+    is_quantized = any(q in model_id for q in ["4bit", "8bit", "q4", "q6", "q3", "q2", "gguf", "gptq", "awq"])
+
     if hasattr(model_info, "safetensors") and model_info.safetensors:
         params = model_info.safetensors.get("total", 0)
         if params:
-            return params * 2 / (1024 ** 3)
+            bpp = 0.55 if is_quantized else 2.0
+            return params * bpp / (1024 ** 3)
 
     if hasattr(model_info, "siblings") and model_info.siblings:
         total = sum(s.size or 0 for s in model_info.siblings if s.size)

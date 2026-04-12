@@ -1,0 +1,670 @@
+{
+  "generated_at": "2026-04-12T12:16:10.676720+00:00",
+  "tiers": {
+    "8gb": {
+      "mlx": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 27,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.512
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 4.6,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2898
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2898
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2565
+        },
+        {
+          "repo_id": "caiovicentino1/Qwopus3.5-9B-v3-PolarQuant-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2565
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 3,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2454
+        },
+        {
+          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        }
+      ],
+      "gguf": []
+    },
+    "16gb": {
+      "mlx": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 27,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.512
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 4.6,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2898
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2898
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2565
+        },
+        {
+          "repo_id": "caiovicentino1/Qwopus3.5-9B-v3-PolarQuant-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2565
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 3,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2454
+        },
+        {
+          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2343
+        }
+      ],
+      "gguf": []
+    },
+    "24gb": {
+      "mlx": [
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 49,
+          "size_gb": 12.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.512
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-8B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 27,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.3773
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 4.6,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 13.8,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "caiovicentino1/Qwopus3.5-9B-v3-PolarQuant-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 3,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2304
+        },
+        {
+          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2243
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2243
+        }
+      ],
+      "gguf": []
+    },
+    "32gb": {
+      "mlx": [
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 49,
+          "size_gb": 12.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.512
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-8B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 27,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.3773
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 4.6,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 13.8,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "caiovicentino1/Qwopus3.5-9B-v3-PolarQuant-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 3,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2304
+        },
+        {
+          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2243
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2243
+        }
+      ],
+      "gguf": []
+    },
+    "48gb": {
+      "mlx": [
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 49,
+          "size_gb": 12.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.512
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-8B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 27,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.3773
+        },
+        {
+          "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 4.6,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwopus3.5-9B-v3-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 7,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2549
+        },
+        {
+          "repo_id": "mlx-community/gpt-oss-20b-MXFP4-Q8",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 39.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 13.8,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-mlx-1bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "caiovicentino1/Qwopus3.5-9B-v3-PolarQuant-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 4,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2365
+        },
+        {
+          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 3,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2304
+        },
+        {
+          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 2,
+          "size_gb": 0.7,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.2243
+        }
+      ],
+      "gguf": []
+    }
+  },
+  "embeddings": [
+    {
+      "repo_id": "mlx-community/embeddinggemma-300m-4bit",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 0,
+      "size_gb": 0.0,
+      "created_at": "",
+      "last_modified": "",
+      "format": "mlx",
+      "score": 0.362
+    },
+    {
+      "repo_id": "badmadrad/granite-embedding-125m-english-mlx",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 0,
+      "size_gb": 0.2,
+      "created_at": "",
+      "last_modified": "",
+      "format": "mlx",
+      "score": 0.362
+    },
+    {
+      "repo_id": "alibayram/embeddingmagibu-200m-mlx",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 0,
+      "size_gb": 0.1,
+      "created_at": "",
+      "last_modified": "",
+      "format": "mlx",
+      "score": 0.362
+    },
+    {
+      "repo_id": "google/embeddinggemma-300m",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 18,
+      "size_gb": 0.6,
+      "created_at": "",
+      "last_modified": "",
+      "format": "safetensors",
+      "score": 0.512
+    },
+    {
+      "repo_id": "BidirLM/BidirLM-Omni-2.5B-Embedding",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 6,
+      "size_gb": 4.6,
+      "created_at": "",
+      "last_modified": "",
+      "format": "safetensors",
+      "score": 0.312
+    },
+    {
+      "repo_id": "BidirLM/BidirLM-270M-Embedding",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 3,
+      "size_gb": 0.5,
+      "created_at": "",
+      "last_modified": "",
+      "format": "safetensors",
+      "score": 0.262
+    },
+    {
+      "repo_id": "BidirLM/BidirLM-1.7B-Embedding",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 2,
+      "size_gb": 3.2,
+      "created_at": "",
+      "last_modified": "",
+      "format": "safetensors",
+      "score": 0.2454
+    },
+    {
+      "repo_id": "dangvantuan/vietnamese-document-embedding",
+      "downloads": 0,
+      "likes": 0,
+      "trending_score": 1,
+      "size_gb": 0.6,
+      "created_at": "",
+      "last_modified": "",
+      "format": "safetensors",
+      "score": 0.2287
+    }
+  ]
+}
