@@ -13,12 +13,15 @@ class RuntimeDecision:
     quantization: str     # "Q6_K" | "Q4_K_M" | "Q3_K_M" | "Q2_K"
     max_model_params_b: float
     max_context_length: int
+    ui: str = "terminal"  # "open-webui" | "lm-studio" | "ollama-cli" | "terminal"
 
 
-def decide_runtime(profile: HardwareProfile) -> RuntimeDecision:
+def decide_runtime(profile: HardwareProfile, docker_info: dict | None = None) -> RuntimeDecision:
     runtime, backend = _pick_runtime_backend(profile)
     quant = _pick_quantization(profile)
-    max_params = _estimate_max_params(profile, quant)
+    ui = _pick_ui(profile, runtime, docker_info)
+    ram_overhead = 2.0 if ui == "open-webui" else 0.0
+    max_params = _estimate_max_params(profile, quant, ram_overhead)
     max_ctx = _estimate_max_context(profile, max_params)
 
     return RuntimeDecision(
@@ -27,7 +30,20 @@ def decide_runtime(profile: HardwareProfile) -> RuntimeDecision:
         quantization=quant,
         max_model_params_b=max_params,
         max_context_length=max_ctx,
+        ui=ui,
     )
+
+
+def _pick_ui(profile: HardwareProfile, runtime: str, docker_info: dict | None = None) -> str:
+    """Cascading UI fallback: Open WebUI → LM Studio → Ollama CLI → terminal."""
+    docker = docker_info or {}
+    if docker.get("installed") and docker.get("running") and profile.ram_total_gb >= 16:
+        return "open-webui"
+    if profile.os_type in ("macOS", "Windows"):
+        return "lm-studio"
+    if runtime == "ollama":
+        return "ollama-cli"
+    return "terminal"
 
 
 def _pick_runtime_backend(profile: HardwareProfile) -> tuple[str, str]:
@@ -58,14 +74,23 @@ def _pick_quantization(profile: HardwareProfile) -> str:
     return "Q2_K"
 
 
-def _estimate_max_params(profile: HardwareProfile, quant: str) -> float:
+def _estimate_max_params(profile: HardwareProfile, quant: str, ram_overhead_gb: float = 0.0) -> float:
     """Estimate max model size in billions of params that fits in memory."""
-    # Rough bytes-per-param for each quantization
     bpp = {"Q6_K": 0.75, "Q4_K_M": 0.55, "Q3_K_M": 0.44, "Q2_K": 0.33}
     bytes_per_param = bpp.get(quant, 0.55)
 
-    # Use 75% of available VRAM/RAM for the model, rest for KV cache + OS
-    usable_gb = (profile.gpu_vram_gb if profile.gpu_vram_gb > 0 else profile.ram_total_gb) * 0.75
+    if profile.ram_unified:
+        # Apple Silicon: model competes with OS for unified memory
+        usable_gb = profile.ram_total_gb * 0.75
+    elif profile.gpu_vram_gb > 0:
+        # Discrete GPU: VRAM + a fraction of system RAM for layer overflow
+        ram_overflow = min(profile.ram_total_gb * 0.25, 8.0)
+        usable_gb = (profile.gpu_vram_gb + ram_overflow) * 0.75
+    else:
+        # CPU-only: model lives in system RAM
+        usable_gb = profile.ram_total_gb * 0.75
+
+    usable_gb = max(usable_gb - ram_overhead_gb, 1.0)
     max_params_b = usable_gb / bytes_per_param
     return round(max_params_b, 1)
 
@@ -97,6 +122,7 @@ def display_decision(decision: RuntimeDecision) -> None:
         table.add_row("Quantization", decision.quantization)
         table.add_row("Max model size", f"~{decision.max_model_params_b}B params")
         table.add_row("Max context", f"{decision.max_context_length} tokens")
+        table.add_row("UI", decision.ui)
 
         console.print(table)
     except ImportError:

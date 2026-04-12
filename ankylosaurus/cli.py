@@ -74,7 +74,7 @@ def tui():
 def install():
     """Full interactive installation: detect hardware, pick runtime & models, install everything."""
     show_splash()
-    from .modules.detect import detect_hardware, display_hardware
+    from .modules.detect import detect_hardware, detect_docker, display_hardware
     from .modules.decision import decide_runtime, display_decision
     from .modules.questionnaire import run_questionnaire
     from .modules.models import find_chat_models, find_embedding_models, display_candidates
@@ -93,17 +93,19 @@ def install():
         "gpu": profile.gpu_name, "ram_gb": profile.ram_total_gb,
     }
 
-    # 2. Decide runtime + backend
-    decision = decide_runtime(profile)
+    # 2. Detect Docker and decide runtime + backend + UI
+    docker_info = detect_docker()
+    decision = decide_runtime(profile, docker_info=docker_info)
     display_decision(decision)
     state.runtime = decision.runtime
 
     # 3. Questionnaire
-    prefs = run_questionnaire(profile, yes_mode=_yes_mode)
+    prefs = run_questionnaire(profile, decision=decision, yes_mode=_yes_mode)
     state.preferences = {
         "usage": prefs.usage, "features": prefs.features,
         "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
-        "language": prefs.language, "battery_mode": prefs.battery_mode,
+        "gui_mode": prefs.gui_mode, "language": prefs.language,
+        "battery_mode": prefs.battery_mode,
     }
 
     # 4. Model selection

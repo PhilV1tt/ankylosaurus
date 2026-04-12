@@ -1,6 +1,6 @@
 """Tests for detect.py — hardware detection."""
 
-from ankylosaurus.modules.detect import detect_hardware, HardwareProfile, display_hardware
+from ankylosaurus.modules.detect import detect_hardware, detect_docker, HardwareProfile, display_hardware
 
 
 def test_detect_hardware_returns_profile():
@@ -33,3 +33,12 @@ def test_detect_hardware_cpu_info():
 def test_display_hardware_no_crash(m5_profile):
     # Should not raise
     display_hardware(m5_profile)
+
+
+def test_detect_docker_returns_dict():
+    result = detect_docker()
+    assert isinstance(result, dict)
+    assert "installed" in result
+    assert "running" in result
+    assert isinstance(result["installed"], bool)
+    assert isinstance(result["running"], bool)

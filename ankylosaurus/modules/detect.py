@@ -226,6 +226,17 @@ def _detect_windows() -> HardwareProfile:
     )
 
 
+def detect_docker() -> dict:
+    """Check Docker availability: CLI installed and daemon running."""
+    result = {"installed": False, "running": False}
+    if not shutil.which("docker"):
+        return result
+    result["installed"] = True
+    info = _run(["docker", "info"], default="")
+    result["running"] = bool(info and "Server Version" in info)
+    return result
+
+
 def display_hardware(profile: HardwareProfile) -> None:
     """Print hardware summary to console."""
     try:

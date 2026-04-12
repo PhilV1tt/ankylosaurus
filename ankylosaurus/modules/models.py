@@ -105,6 +105,22 @@ def _days_since(iso_date: str, now: datetime) -> float:
         return 365.0
 
 
+# --- Memory estimation ---
+
+def _effective_model_memory(profile: HardwareProfile, decision: RuntimeDecision) -> float:
+    """Calculate effective memory in GB for model selection, accounting for overhead."""
+    if profile.ram_unified:
+        base = profile.ram_total_gb
+    elif profile.gpu_vram_gb > 0:
+        ram_overflow = min(profile.ram_total_gb * 0.25, 8.0)
+        base = profile.gpu_vram_gb + ram_overflow
+    else:
+        base = profile.ram_total_gb
+
+    overhead = 2.0 if decision.ui == "open-webui" else 0.0
+    return max(base - overhead, 4.0)
+
+
 # --- Index ---
 
 def _ram_to_tier(ram_gb: float) -> str:
@@ -168,31 +184,31 @@ def find_chat_models(
     """Search for chat models. Uses pre-computed index, falls back to live HF Hub."""
     # Try index first
     index = _load_index()
+    effective_mem = _effective_model_memory(profile, decision)
     if index:
-        # Use VRAM for dedicated GPUs, RAM for unified memory
-        effective_mem = profile.gpu_vram_gb if profile.gpu_vram_gb > 0 and not profile.ram_unified else profile.ram_total_gb
         tier = _ram_to_tier(effective_mem)
         fmt = "mlx" if decision.backend == "mlx" else "gguf"
         entries = index.get("tiers", {}).get(tier, {}).get(fmt, [])
         if entries:
             candidates = _index_to_candidates(entries)
-            # Filter by size: respect both disk budget and max model params
-            max_size = decision.max_model_params_b * 0.75
+            # Filter by size in GB (disk budget and memory capacity)
+            max_size_gb = effective_mem * 0.75
             candidates = [
                 c for c in candidates
                 if c.size_gb <= prefs.disk_budget_gb * 0.6
-                and (c.size_gb <= max_size or max_size <= 0)
+                and (c.size_gb <= max_size_gb or max_size_gb <= 0)
             ]
             return candidates[:limit]
 
     # Fallback: live search
-    return _live_chat_search(decision, prefs, limit)
+    return _live_chat_search(decision, prefs, limit, max_size_gb=effective_mem * 0.75)
 
 
 def _live_chat_search(
     decision: RuntimeDecision,
     prefs: UserPreferences,
     limit: int,
+    max_size_gb: float = 0,
 ) -> list[ModelCandidate]:
     from huggingface_hub import HfApi
 
@@ -207,7 +223,7 @@ def _live_chat_search(
         expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
-    candidates = _filter_candidates(raw_models, decision, prefs)
+    candidates = _filter_candidates(raw_models, decision, prefs, max_size_gb)
     _compute_scores(candidates)
     candidates.sort(key=lambda c: c.score, reverse=True)
     return candidates[:limit]
@@ -275,6 +291,7 @@ def _filter_candidates(
     raw_models,
     decision: RuntimeDecision,
     prefs: UserPreferences,
+    max_size_gb: float = 0,
 ) -> list[ModelCandidate]:
     """Filter raw HF models by size/RAM/format constraints."""
     candidates: list[ModelCandidate] = []
@@ -283,8 +300,7 @@ def _filter_candidates(
         size_gb = _estimate_size(m)
         if size_gb > prefs.disk_budget_gb * 0.6:
             continue
-        max_size = decision.max_model_params_b * 0.75
-        if size_gb > max_size and max_size > 0:
+        if size_gb > max_size_gb and max_size_gb > 0:
             continue
 
         model_id = m.id or ""
