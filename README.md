@@ -13,7 +13,7 @@ Named after a friend nicknamed Ankyl.
 1. **Detects hardware** — CPU, GPU, RAM, disk (macOS / Linux / Windows)
 2. **Picks optimal setup** — runtime (LM Studio or Ollama), backend (MLX, CUDA, ROCm, CPU), quantization
 3. **Searches models live** — queries HuggingFace Hub in real-time, zero hardcoded model names
-4. **Installs everything** — runtime, models, CLI tools (llm, fabric-ai), GUI apps (Msty, AnythingLLM)
+4. **Installs everything** — runtime, models, CLI tools (llm, fabric-ai), GUI apps (Open WebUI, AnythingLLM)
 5. **Resumes on interruption** — Ctrl-C mid-install, re-run, picks up where it left off
 6. **Manages extensions** — MCP servers, fabric patterns, Obsidian, Raycast
 7. **Includes 8 personas** — coder, researcher, writer, tutor, analyst, translator, summarizer, general

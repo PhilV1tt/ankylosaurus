@@ -134,6 +134,22 @@ def install():
 
 
 @app.command()
+def run(
+    prompt: Optional[str] = typer.Argument(None, help="Question to ask (omit for interactive mode)."),
+    persona: Optional[str] = typer.Option(None, "--persona", "-p", help="Use a persona's system prompt."),
+):
+    """Chat with your installed LLM model."""
+    from .modules.state import load_state, state_exists
+    from .modules.runner import run_model
+
+    if not state_exists():
+        console.print("[yellow]No installation found. Run 'ankylosaurus install' first.[/yellow]")
+        raise typer.Exit(1)
+
+    run_model(load_state(), prompt=prompt, persona=persona, console=console)
+
+
+@app.command()
 def uninstall(
     all_: bool = typer.Option(False, "--all", help="Remove everything without asking."),
     models_only: bool = typer.Option(False, "--models-only", help="Remove only downloaded models."),
@@ -188,6 +204,97 @@ def check():
         raise typer.Exit()
 
     run_check(load_state(), console)
+
+
+@app.command()
+def rag(
+    action: str = typer.Argument(..., help="start | stop | ingest | list | delete"),
+    file: str = typer.Argument(None, help="PDF path (for ingest) or doc name (for delete)"),
+    port: int = typer.Option(1235, help="Server port"),
+):
+    """RAG proxy: embed PDFs, search, and augment LLM queries."""
+    from .modules.rag.embedder import Embedder
+
+    if action == "start":
+        embedder = Embedder()
+        if not embedder.is_downloaded:
+            console.print(
+                "[red]Jina v5 MLX model not found.[/red]\n"
+                "Download with:\n"
+                f"  hf download jinaai/jina-embeddings-v5-text-small-retrieval-mlx "
+                f"--local-dir {embedder.model_path}"
+            )
+            raise typer.Exit(1)
+        console.print(f"[bold]Starting RAG proxy on port {port}...[/bold]")
+        from .modules.rag.server import run_server
+        run_server(port=port)
+
+    elif action == "stop":
+        import subprocess
+        result = subprocess.run(
+            ["pkill", "-f", "ankylosaurus.modules.rag.server"],
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            console.print("[green]RAG proxy stopped.[/green]")
+        else:
+            console.print("[yellow]No RAG proxy process found.[/yellow]")
+
+    elif action == "ingest":
+        if not file:
+            console.print("[red]Usage: ankylosaurus rag ingest <path.pdf>[/red]")
+            raise typer.Exit(1)
+        from pathlib import Path
+        if not Path(file).exists():
+            console.print(f"[red]File not found: {file}[/red]")
+            raise typer.Exit(1)
+
+        from .modules.rag.embedder import Embedder as Emb
+        from .modules.rag.chunker import ingest_pdf
+        from .modules.rag.store import VectorStore
+
+        embedder = Emb()
+        if not embedder.is_downloaded:
+            console.print("[red]Jina v5 MLX model not found. Run 'ankylosaurus rag start' for instructions.[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]Ingesting {file}...[/bold]")
+        chunks = ingest_pdf(file)
+        console.print(f"  {len(chunks)} chunks extracted")
+
+        texts = [c["text"] for c in chunks]
+        batch_size = 32
+        n_batches = (len(texts) + batch_size - 1) // batch_size
+        console.print(f"  Embedding ({n_batches} batches)...")
+        embeddings = embedder.embed(texts, task="retrieval.passage", batch_size=batch_size)
+
+        store = VectorStore()
+        doc_name = Path(file).stem
+        n = store.add_document(doc_name, chunks, embeddings)
+        console.print(f"[green]  {n} chunks stored as '{doc_name}'[/green]")
+
+    elif action == "list":
+        from .modules.rag.store import VectorStore
+        docs = VectorStore().list_documents()
+        if docs:
+            for d in docs:
+                console.print(f"  {d}")
+        else:
+            console.print("[yellow]No documents ingested yet.[/yellow]")
+
+    elif action == "delete":
+        if not file:
+            console.print("[red]Usage: ankylosaurus rag delete <doc_name>[/red]")
+            raise typer.Exit(1)
+        from .modules.rag.store import VectorStore
+        n = VectorStore().delete_document(file)
+        if n:
+            console.print(f"[green]Deleted '{file}' ({n} chunks)[/green]")
+        else:
+            console.print(f"[yellow]Document '{file}' not found.[/yellow]")
+
+    else:
+        console.print(f"[red]Unknown action: {action}. Use start|stop|ingest|list|delete[/red]")
 
 
 @app.command()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from .detect import HardwareProfile
 
@@ -19,6 +20,17 @@ class UserPreferences:
     def __post_init__(self):
         if self.personas is None:
             self.personas = []
+
+
+def _ask(question, default=None):
+    """Wrap questionary .ask() with Ctrl-C safety."""
+    result = question.ask()
+    if result is None:
+        if default is not None:
+            return default
+        print("\nAborted.")
+        sys.exit(130)
+    return result
 
 
 def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserPreferences:
@@ -54,14 +66,14 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
 
     console.print("\n[bold cyan]Configuration[/bold cyan]\n")
 
-    usage = questionary.select(
+    usage = _ask(questionary.select(
         "Primary usage:",
         choices=["general", "code", "studies", "writing"],
         default="general",
         style=style,
-    ).ask()
+    ), default="general")
 
-    features = questionary.checkbox(
+    features = _ask(questionary.checkbox(
         "Features:",
         choices=[
             questionary.Choice("chat", checked=True),
@@ -70,59 +82,57 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
             questionary.Choice("agents"),
         ],
         style=style,
-    ).ask()
+    ), default=["chat"])
     if not features:
         features = ["chat"]
 
     max_disk = min(int(profile.disk_free_gb * 0.5), 100)
-    disk_budget = questionary.text(
+    disk_budget = _ask(questionary.text(
         f"Disk budget for models in GB (max ~{max_disk}):",
         default=str(min(30, max_disk)),
         validate=lambda v: v.isdigit() and 0 < int(v) <= max_disk,
         style=style,
-    ).ask()
+    ), default=str(min(30, max_disk)))
     disk_budget = int(disk_budget)
 
-    want_gui = questionary.confirm(
-        "Install GUI apps (Msty, AnythingLLM)?",
+    want_gui = _ask(questionary.confirm(
+        "Install GUI apps (Open WebUI, AnythingLLM)?",
         default=True,
         style=style,
-    ).ask()
+    ), default=True)
 
-    language = questionary.select(
+    language = _ask(questionary.select(
         "Primary language:",
         choices=["multi", "en", "fr"],
         default="multi",
         style=style,
-    ).ask()
+    ), default="multi")
 
     battery_mode = False
     if profile.os_type == "macOS":
-        battery_mode = questionary.confirm(
+        battery_mode = _ask(questionary.confirm(
             "Optimize for battery life?",
             default=False,
             style=style,
-        ).ask()
+        ), default=False)
 
     # Persona selection
     from .personas import BUILTIN_PERSONAS
 
     persona_choices = [
         questionary.Choice(
-            f"{name} -- {data['system'][:50]}...",
+            f"{name} ({data['language']})",
             value=name,
             checked=True,
         )
         for name, data in BUILTIN_PERSONAS.items()
     ]
 
-    selected_personas = questionary.checkbox(
+    selected_personas = _ask(questionary.checkbox(
         "Personas to install:",
         choices=persona_choices,
         style=style,
-    ).ask()
-    if selected_personas is None:
-        selected_personas = []
+    ), default=list(BUILTIN_PERSONAS.keys()))
 
     return UserPreferences(
         usage=usage,

@@ -30,7 +30,7 @@ def run_uninstall(
     steps = [
         ("aliases", "Shell aliases", _remove_aliases),
         ("anythingllm", "AnythingLLM", _remove_cask, "anythingllm"),
-        ("msty", "Msty Studio", _remove_cask, "mstystudio"),
+        ("openwebui", "Open WebUI", _remove_docker, "open-webui"),
         ("fabric", "fabric-ai", _remove_pip, "fabric-ai"),
         ("llm_cli", "llm CLI", _remove_pip, "llm"),
         ("runtime", "Runtime ({})".format(state.runtime), _remove_runtime),
@@ -85,6 +85,12 @@ def _remove_cask(cask_name: str, state: InstallState, console: Console) -> None:
                        capture_output=True, text=True)
 
 
+def _remove_docker(container: str, state: InstallState, console: Console) -> None:
+    if shutil.which("docker"):
+        subprocess.run(["docker", "stop", container], capture_output=True, text=True)
+        subprocess.run(["docker", "rm", container], capture_output=True, text=True)
+
+
 def _remove_pip(pkg: str, state: InstallState, console: Console) -> None:
     subprocess.run(["pip3", "uninstall", "-y", pkg], capture_output=True, text=True)
 
@@ -112,7 +118,7 @@ def _remove_models(state: InstallState, console: Console) -> None:
         console.print(f"  Removing {repo_id}...")
         # Try ollama rm
         if state.runtime == "ollama" and shutil.which("ollama"):
-            name = repo_id.split("/")[-1].lower()
+            name = m.get("ollama_name", "") or repo_id.split("/")[-1].lower()
             subprocess.run(["ollama", "rm", name], capture_output=True, text=True)
     state.models.clear()
     from .state import save_state

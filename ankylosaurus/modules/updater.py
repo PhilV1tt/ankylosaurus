@@ -36,9 +36,12 @@ def run_update(state: InstallState, console: Console) -> None:
                 updated = True
 
     # GUI apps
-    if state.tools.get("msty") and shutil.which("brew"):
-        if Confirm.ask("Update Msty Studio?", default=True):
-            _brew_upgrade("mstystudio", console, cask=True)
+    if state.tools.get("openwebui") and shutil.which("docker"):
+        if Confirm.ask("Update Open WebUI?", default=True):
+            subprocess.run(["docker", "pull", "ghcr.io/open-webui/open-webui:main"], capture_output=True)
+            subprocess.run(["docker", "stop", "open-webui"], capture_output=True)
+            subprocess.run(["docker", "rm", "open-webui"], capture_output=True)
+            console.print("  [dim]Re-run 'ankylosaurus install' to recreate the container with latest image.[/dim]")
             updated = True
 
     if state.tools.get("anythingllm") and shutil.which("brew"):

@@ -20,7 +20,7 @@ def test_build_steps_base():
     ids = [s[0] for s in steps]
     assert "runtime_installed" in ids
     assert "models_downloaded" in ids
-    assert "msty_installed" not in ids
+    assert "openwebui_installed" not in ids
     assert "anythingllm_installed" not in ids
 
 
@@ -28,7 +28,7 @@ def test_build_steps_with_gui():
     prefs = _make_prefs(want_gui=True)
     steps = _build_steps(prefs)
     ids = [s[0] for s in steps]
-    assert "msty_installed" in ids
+    assert "openwebui_installed" in ids
 
 
 def test_build_steps_with_rag():
