@@ -38,13 +38,14 @@ signal.signal(signal.SIGINT, _sigint_handler)
 
 app = typer.Typer(
     name="ankylosaurus",
-    no_args_is_help=True,
+    invoke_without_command=True,
     help="ANKYLOSAURUS -- automated local LLM setup for any machine",
 )
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None, "--version", "-V", callback=_version_callback, is_eager=True,
         help="Show version and exit.",
@@ -54,10 +55,19 @@ def main(
         help="Non-interactive mode: accept all defaults.",
     ),
 ) -> None:
-    pass
+    if ctx.invoked_subcommand is None:
+        from .tui import run_tui
+        run_tui()
 
 
 console = Console()
+
+
+@app.command()
+def tui():
+    """Interactive menu interface."""
+    from .tui import run_tui
+    run_tui()
 
 
 @app.command()
