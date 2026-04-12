@@ -1,6 +1,7 @@
 """Tests for personas.py — CRUD + built-in templates."""
 
 import json
+import os
 
 from ankylosaurus.modules.personas import (
     BUILTIN_PERSONAS,
@@ -52,7 +53,7 @@ def test_install_builtin_personas_idempotent(tmp_path, monkeypatch):
 def test_delete_builtin_persona_blocked(tmp_path, monkeypatch):
     monkeypatch.setattr("ankylosaurus.modules.personas.TEMPLATES_DIR", tmp_path)
     from rich.console import Console
-    console = Console(file=open("/dev/null", "w"))
+    console = Console(file=open(os.devnull, "w"))
     state = InstallState(personas=["coder"])
     delete_persona("coder", state, console)
     assert "coder" in state.personas  # should NOT be removed
@@ -65,7 +66,7 @@ def test_delete_custom_persona(tmp_path, monkeypatch):
     path.write_text('{"name": "my_persona", "system": "test", "language": "en"}')
 
     from rich.console import Console
-    console = Console(file=open("/dev/null", "w"))
+    console = Console(file=open(os.devnull, "w"))
     state = InstallState(personas=["my_persona"])
     delete_persona("my_persona", state, console)
 
