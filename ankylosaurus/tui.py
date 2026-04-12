@@ -1,243 +1,544 @@
-"""TUI — Textual-based interactive interface."""
+"""TUI — Premium multi-panel dashboard built with Textual."""
 
 from __future__ import annotations
+
+import shutil
+import subprocess
 
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
-from textual.widgets import Footer, Header, Label, ListItem, ListView, Static
+from textual.containers import Horizontal, ScrollableContainer
+from textual.reactive import reactive
+from textual.widgets import Footer, Label, ListItem, ListView, Static, DataTable
 
 from . import __version__
 
 
 # ---------------------------------------------------------------------------
-# Status helpers
+# State helpers
 # ---------------------------------------------------------------------------
 
-def _load_status() -> dict:
-    """Read install state and return summary dict."""
+def _load_state_summary() -> dict:
+    """Load install state and return a structured summary."""
     from .modules.state import state_exists, load_state
 
     if not state_exists():
         return {}
 
     state = load_state()
-    info = {}
+    summary: dict = {}
+
+    # Hardware
+    hw = state.hardware
+    if hw:
+        summary["hardware"] = {
+            "os": hw.get("os", "?"),
+            "cpu": hw.get("cpu", "?"),
+            "gpu": hw.get("gpu", "None"),
+            "ram_gb": hw.get("ram_gb", "?"),
+        }
+
+    # Runtime
     if state.runtime:
-        info["runtime"] = state.runtime
+        summary["runtime"] = {
+            "name": state.runtime,
+            "version": state.runtime_version or "?",
+            "steps": len(state.steps_completed),
+        }
+
+    # Preferences (includes gui_mode)
+    if state.preferences:
+        summary["preferences"] = state.preferences
+
+    # Models
+    summary["models"] = []
     for m in state.models:
-        role = m.get("role", "?")
-        name = m.get("ollama_name", "") or m.get("repo_id", "?").split("/")[-1]
-        size = m.get("size_gb", "?")
-        info[role] = f"{name} ({size} GB)"
-    tools = [k for k, v in state.tools.items() if v]
-    if tools:
-        info["outils"] = ", ".join(tools)
-    if state.personas:
-        info["personas"] = f"{len(state.personas)} installes"
-    return info
+        summary["models"].append({
+            "role": m.get("role", "?"),
+            "repo_id": m.get("repo_id", "?"),
+            "name": m.get("ollama_name", "") or m.get("repo_id", "?").split("/")[-1],
+            "format": m.get("format", "?"),
+            "size_gb": m.get("size_gb", "?"),
+            "score": m.get("score", 0),
+        })
+
+    # Tools
+    summary["tools"] = {k: v for k, v in state.tools.items()}
+
+    # Personas
+    summary["personas"] = state.personas or []
+
+    return summary
+
+
+def _check_runtime_alive(runtime: str) -> bool:
+    """Check if the runtime process is responding."""
+    if runtime == "ollama" and shutil.which("ollama"):
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, timeout=3,
+        )
+        return result.returncode == 0
+    if runtime == "lm-studio" and shutil.which("lms"):
+        result = subprocess.run(
+            ["lms", "status"], capture_output=True, text=True, timeout=3,
+        )
+        return result.returncode == 0
+    return False
+
+
+def _get_ram_available() -> float:
+    """Get available RAM in GB."""
+    try:
+        import psutil
+        return round(psutil.virtual_memory().available / (1024 ** 3), 1)
+    except Exception:
+        return 0.0
 
 
 # ---------------------------------------------------------------------------
 # Widgets
 # ---------------------------------------------------------------------------
 
-class Logo(Static):
-    """Colored ASCII logo."""
+class BrandHeader(Static):
+    """Custom header with brand name, version, runtime indicator, and RAM."""
 
-    LOGO = (
-        "    _   _  _ _  ___   _ _    ___   _   _  _ ___ _   _ ___ \n"
-        "   /_\\ | \\| | |/ / | / | |  / _ \\ / __| /_\\ | | | | _ | | | / __|\n"
-        "  / _ \\| .` |   <  |_\\ | |_| (_) |\\__ \\/ _ \\| |_| |   | |_| \\__ \\\n"
-        " /_/ \\_|_|\\_|_|\\_\\__/ |____\\___/ |___/_/ \\_\\___/|_|_|\\___/|___/\n"
-    )
+    runtime_alive = reactive(False)
+    ram_available = reactive(0.0)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._runtime_name = ""
+
+    def on_mount(self) -> None:
+        summary = _load_state_summary()
+        rt = summary.get("runtime", {})
+        self._runtime_name = rt.get("name", "")
+        self.ram_available = _get_ram_available()
+        self.runtime_alive = _check_runtime_alive(self._runtime_name) if self._runtime_name else False
+        self.set_interval(10, self._refresh_status)
+
+    def _refresh_status(self) -> None:
+        if self._runtime_name:
+            self.runtime_alive = _check_runtime_alive(self._runtime_name)
+        self.ram_available = _get_ram_available()
 
     def render(self) -> str:
-        return self.LOGO
+        left = f" ANKYLOSAURUS  v{__version__}"
+
+        parts = []
+        if self._runtime_name:
+            dot = "[#22c55e]●[/]" if self.runtime_alive else "[#ef4444]●[/]"
+            label = "running" if self.runtime_alive else "stopped"
+            parts.append(f"{dot} {self._runtime_name} {label}")
+        if self.ram_available:
+            parts.append(f"{self.ram_available} GB free")
+        right = "   ".join(parts)
+
+        return f"[bold #e66414]{left}[/]{'':>10}{right} "
 
 
-class StatusPanel(Static):
-    """Show current install state."""
+class SidebarItem(ListItem):
+    """Menu item with icon and label."""
 
-    def compose(self) -> ComposeResult:
-        info = _load_status()
-        if not info:
-            yield Label("[#e66414]Aucune installation.[/#e66414] Lance [bold]Installer[/bold] pour commencer.", id="status-empty")
-        else:
-            lines = []
-            for key, val in info.items():
-                lines.append(f"[bold #ffd028]{key.capitalize():12s}[/bold #ffd028] [#e66414]{val}[/#e66414]")
-            yield Label("\n".join(lines), id="status-info")
-
-
-class MenuOption(ListItem):
-    """A single menu entry."""
-
-    def __init__(self, key: str, title: str, desc: str) -> None:
+    def __init__(self, key: str, icon: str, title: str, is_sep: bool = False) -> None:
         super().__init__()
         self.key = key
+        self.icon = icon
         self.title = title
-        self.desc = desc
+        self.is_sep = is_sep
 
     def compose(self) -> ComposeResult:
-        yield Label(f"[bold]{self.title}[/bold]  [dim]{self.desc}[/dim]")
+        if self.is_sep:
+            yield Label("[#333]────────────────[/]", classes="sep-label")
+        else:
+            yield Label(f" {self.icon}  {self.title}")
+
+
+class HomeView(Static):
+    """Dashboard home with info panels in a grid."""
+
+    def __init__(self, summary: dict) -> None:
+        super().__init__()
+        self._summary = summary
+
+    def compose(self) -> ComposeResult:
+        s = self._summary
+        if not s:
+            yield Label(
+                "\n  [#e66414]Aucune installation detectee.[/]\n\n"
+                "  Selectionne [bold #ffd028]Installer[/] dans le menu pour commencer.\n",
+            )
+            return
+
+        with Horizontal(classes="panel-row"):
+            # Hardware panel
+            hw = s.get("hardware", {})
+            hw_text = (
+                f"[bold #e66414]Hardware[/]\n"
+                f"[#999]OS[/]      {hw.get('os', '?')}\n"
+                f"[#999]CPU[/]     {hw.get('cpu', '?')}\n"
+                f"[#999]GPU[/]     {hw.get('gpu', 'None')}\n"
+                f"[#999]RAM[/]     {hw.get('ram_gb', '?')} GB"
+            )
+            yield Static(hw_text, classes="info-panel")
+
+            # Runtime panel
+            rt = s.get("runtime", {})
+            prefs = s.get("preferences", {})
+            ui_mode = prefs.get("gui_mode", "")
+            rt_text = (
+                f"[bold #e66414]Runtime[/]\n"
+                f"[#999]Engine[/]  {rt.get('name', 'none')}\n"
+                f"[#999]Version[/] {rt.get('version', '?')}\n"
+                f"[#999]UI[/]      {ui_mode or 'terminal'}\n"
+                f"[#999]Steps[/]   {rt.get('steps', 0)} done"
+            )
+            yield Static(rt_text, classes="info-panel")
+
+        # Models panel
+        models = s.get("models", [])
+        if models:
+            lines = ["[bold #e66414]Models[/]"]
+            for m in models:
+                role_color = "#22c55e" if m["role"] == "chat" else "#3b82f6"
+                lines.append(
+                    f"  [{role_color}]{m['role']:8s}[/]  "
+                    f"{m['name']}  [#666]{m['format']}  {m['size_gb']} GB[/]"
+                )
+            yield Static("\n".join(lines), classes="info-panel wide-panel")
+
+        # Tools panel
+        tools = s.get("tools", {})
+        if tools:
+            lines = ["[bold #e66414]Tools[/]"]
+            for tool, installed in tools.items():
+                icon = "[#22c55e]✓[/]" if installed else "[#ef4444]✗[/]"
+                lines.append(f"  {icon}  {tool}")
+            personas = s.get("personas", [])
+            if personas:
+                lines.append(f"\n[bold #e66414]Personas[/]  [#999]{len(personas)} installed[/]")
+                lines.append(f"  [#666]{', '.join(personas[:6])}{'...' if len(personas) > 6 else ''}[/]")
+            yield Static("\n".join(lines), classes="info-panel wide-panel")
+
+
+class ModelsView(Static):
+    """DataTable view of installed models."""
+
+    def __init__(self, models: list[dict]) -> None:
+        super().__init__()
+        self._models = models
+
+    def compose(self) -> ComposeResult:
+        yield Label("[bold #e66414]  Modeles installes[/]\n")
+        if not self._models:
+            yield Label("  [#666]Aucun modele installe.[/]")
+            return
+
+        table = DataTable(id="models-table")
+        yield table
+
+    def on_mount(self) -> None:
+        table = self.query_one("#models-table", DataTable)
+        table.add_columns("Role", "Modele", "Format", "Taille", "Score")
+        for m in self._models:
+            score_pct = int(float(m.get("score", 0)) * 100)
+            table.add_row(
+                m.get("role", "?"),
+                m.get("name", m.get("repo_id", "?")),
+                m.get("format", "?"),
+                f"{m.get('size_gb', '?')} GB",
+                f"{score_pct}%",
+            )
+
+
+class PersonasView(Static):
+    """List of installed personas."""
+
+    def __init__(self, personas: list[str]) -> None:
+        super().__init__()
+        self._personas = personas
+
+    def compose(self) -> ComposeResult:
+        yield Label("[bold #e66414]  Personas[/]\n")
+        if not self._personas:
+            yield Label("  [#666]Aucun persona installe.[/]")
+            return
+
+        # Try to load persona details
+        try:
+            from .modules.personas import BUILTIN_PERSONAS
+            for name in self._personas:
+                info = BUILTIN_PERSONAS.get(name, {})
+                desc = info.get("system", "")[:80] if info else ""
+                lang = info.get("language", "") if info else ""
+                yield Label(
+                    f"  [bold #ffd028]{name:14s}[/]  "
+                    f"[#999]{lang}[/]  [#666]{desc}[/]"
+                )
+        except Exception:
+            for name in self._personas:
+                yield Label(f"  [#ffd028]{name}[/]")
+
+
+class ToolsView(Static):
+    """Status of installed tools."""
+
+    def __init__(self, tools: dict, summary: dict) -> None:
+        super().__init__()
+        self._tools = tools
+        self._summary = summary
+
+    def compose(self) -> ComposeResult:
+        yield Label("[bold #e66414]  Outils[/]\n")
+        if not self._tools:
+            yield Label("  [#666]Aucun outil installe.[/]")
+            return
+
+        for tool, installed in self._tools.items():
+            icon = "[#22c55e]✓[/]" if installed else "[#ef4444]✗[/]"
+            yield Label(f"  {icon}  [bold]{tool}[/]")
+
+        # Show UI mode info
+        prefs = self._summary.get("preferences", {})
+        ui_mode = prefs.get("gui_mode", "")
+        if ui_mode:
+            yield Label("\n[bold #e66414]  Interface[/]\n")
+            ui_labels = {
+                "open-webui": "Open WebUI  [#999](http://localhost:3000)[/]",
+                "lm-studio": "LM Studio  [#999](app native)[/]",
+                "ollama-cli": "Ollama CLI  [#999](ollama run <model>)[/]",
+                "terminal": "Terminal  [#999](ankylosaurus run)[/]",
+            }
+            yield Label(f"  [#ffd028]{ui_labels.get(ui_mode, ui_mode)}[/]")
 
 
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 
-def _build_menu_items() -> list[tuple[str, str, str]]:
-    from .modules.state import state_exists
-
-    installed = state_exists()
-    items = []
-    if installed:
-        items.append(("run", "Discuter", "Poser une question au modele"))
-        items.append(("status", "Tableau de bord", "Voir l'etat de l'installation"))
-        items.append(("install", "Reinstaller", "Relancer l'installation"))
-        items.append(("check", "Verifier", "Chercher des mises a jour"))
-        items.append(("update", "Mettre a jour", "Mettre a jour les composants"))
-        items.append(("personas", "Personas", "Gerer les personnalites"))
-        items.append(("uninstall", "Desinstaller", "Supprimer les composants"))
-    else:
-        items.append(("install", "Installer", "Detecter le materiel et installer un modele"))
-        items.append(("status", "Tableau de bord", "Voir l'etat"))
-    items.append(("quit", "Quitter", ""))
-    return items
+MENU_ITEMS = [
+    ("home", "◆", "Accueil"),
+    ("models", "◈", "Modeles"),
+    ("personas", "◉", "Personas"),
+    ("tools", "⚙", "Outils"),
+    ("---", "", ""),
+    ("install", "▶", "Installer"),
+    ("check", "↻", "Verifier"),
+    ("update", "⇡", "Mettre a jour"),
+    ("run", "▸", "Discuter"),
+    ("---", "", ""),
+    ("uninstall", "✕", "Desinstaller"),
+    ("quit", "⏻", "Quitter"),
+]
 
 
 class AnkylosaurusApp(App):
-    """Main TUI application."""
+    """Premium multi-panel dashboard TUI."""
 
     TITLE = "ANKYLOSAURUS"
+
     CSS = """
     Screen {
-        background: #111;
+        background: #0d0d0d;
     }
 
-    Header {
+    #brand-header {
+        dock: top;
+        height: 1;
         background: #1a0a00;
-        color: #e66414;
+        padding: 0 1;
     }
 
-    #logo {
+    #body {
+        height: 1fr;
+    }
+
+    /* --- Sidebar --- */
+    #sidebar {
+        width: 24;
+        background: #141414;
+        border-right: solid #2a1a0a;
+        padding: 1 0;
+    }
+
+    #sidebar > ListItem {
+        padding: 0 1;
+        color: #a08060;
+        height: 2;
+    }
+
+    #sidebar > ListItem.--highlight {
+        background: #e66414 15%;
+        color: #ffd028;
+        text-style: bold;
+    }
+
+    .sep-label {
+        height: 1;
+        color: #333;
+    }
+
+    /* --- Main content --- */
+    #main {
+        padding: 1 2;
+        overflow-y: auto;
+    }
+
+    /* --- Info panels --- */
+    .info-panel {
+        border: round #2a1a0a;
+        padding: 1 2;
+        height: auto;
+        margin: 0 1 1 0;
+        min-width: 30;
+        max-width: 42;
+    }
+
+    .wide-panel {
+        max-width: 100%;
         width: 100%;
-        content-align: center middle;
+    }
+
+    .panel-row {
+        height: auto;
+    }
+
+    /* --- DataTable --- */
+    DataTable {
+        height: auto;
+        max-height: 20;
+        margin: 0 2;
+        background: #141414;
+    }
+
+    DataTable > .datatable--header {
         color: #e66414;
         text-style: bold;
-        margin-top: 1;
-    }
-
-    #subtitle {
-        width: 100%;
-        text-align: center;
-        color: #a06020;
-        margin-bottom: 1;
-    }
-
-    #status-panel {
-        width: 60;
-        margin: 0 auto;
-        padding: 1 2;
-        border: round #c04010;
-        margin-bottom: 1;
-    }
-
-    #status-empty {
-        text-align: center;
-    }
-
-    #menu {
-        width: 60;
-        margin: 0 auto;
-        height: auto;
-        max-height: 16;
-        border: round #c04010;
-        padding: 0 1;
         background: #1a0a00;
     }
 
-    #menu > ListItem {
-        padding: 0 2;
+    DataTable > .datatable--cursor {
+        background: #e66414 20%;
         color: #ffd028;
     }
 
-    #menu > ListItem.--highlight {
-        background: #c04010 40%;
-        color: #ffe060;
-    }
-
+    /* --- Footer --- */
     Footer {
         background: #1a0a00;
-        color: #e66414;
+        color: #a08060;
     }
     """
 
     BINDINGS = [
         Binding("q", "quit_app", "Quitter"),
-        Binding("enter", "select_item", "Choisir", show=False),
+        Binding("r", "refresh_all", "Rafraichir"),
+        Binding("1", "goto_home", "Accueil", show=False),
+        Binding("2", "goto_models", "Modeles", show=False),
+        Binding("3", "goto_personas", "Personas", show=False),
+        Binding("4", "goto_tools", "Outils", show=False),
+        Binding("tab", "toggle_focus", "Focus", show=False),
     ]
 
+    current_view = reactive("home")
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._summary: dict = {}
+
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=False)
-        with Vertical():
-            yield Logo(id="logo")
-            yield Label(
-                f"v{__version__} -- ton assistant IA local",
-                id="subtitle",
-            )
-            yield StatusPanel(id="status-panel")
-            menu = ListView(id="menu")
-            for key, title, desc in _build_menu_items():
-                menu.append(MenuOption(key, title, desc))
-            yield menu
+        yield BrandHeader(id="brand-header")
+        with Horizontal(id="body"):
+            sidebar = ListView(id="sidebar")
+            for key, icon, title in MENU_ITEMS:
+                sidebar.append(SidebarItem(key, icon, title, is_sep=(key == "---")))
+            yield sidebar
+            yield ScrollableContainer(id="main")
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("#menu", ListView).focus()
+        self._summary = _load_state_summary()
+        self._show_view("home")
+        self.query_one("#sidebar", ListView).focus()
 
-    @on(ListView.Selected, "#menu")
-    def handle_menu(self, event: ListView.Selected) -> None:
-        item: MenuOption = event.item  # type: ignore[assignment]
-        self._execute(item.key)
+    # --- View switching ---
+
+    def _show_view(self, view_name: str) -> None:
+        main = self.query_one("#main", ScrollableContainer)
+        main.remove_children()
+
+        if view_name == "home":
+            main.mount(HomeView(self._summary))
+        elif view_name == "models":
+            main.mount(ModelsView(self._summary.get("models", [])))
+        elif view_name == "personas":
+            main.mount(PersonasView(self._summary.get("personas", [])))
+        elif view_name == "tools":
+            main.mount(ToolsView(self._summary.get("tools", {}), self._summary))
+
+        self.current_view = view_name
+
+    def _refresh_and_show(self, view_name: str) -> None:
+        self._summary = _load_state_summary()
+        self._show_view(view_name)
+        # Also refresh the header
+        header = self.query_one("#brand-header", BrandHeader)
+        header._refresh_status()
+
+    # --- Menu handling ---
+
+    @on(ListView.Selected, "#sidebar")
+    def handle_sidebar(self, event: ListView.Selected) -> None:
+        item: SidebarItem = event.item  # type: ignore[assignment]
+        if item.is_sep:
+            return
+        self._handle_action(item.key)
+
+    def _handle_action(self, key: str) -> None:
+        # In-TUI views
+        if key in ("home", "models", "personas", "tools"):
+            self._show_view(key)
+            return
+
+        # Quit
+        if key == "quit":
+            self.exit()
+            return
+
+        # Suspend-to-terminal commands
+        if key in ("install", "run", "uninstall", "update", "check"):
+            with self.suspend():
+                _run_command(key)
+            self._refresh_and_show(self.current_view)
+            return
+
+    # --- Key bindings ---
 
     def action_quit_app(self) -> None:
         self.exit()
 
-    def action_select_item(self) -> None:
-        menu = self.query_one("#menu", ListView)
-        if menu.highlighted_child is not None:
-            item: MenuOption = menu.highlighted_child  # type: ignore[assignment]
-            self._execute(item.key)
+    def action_refresh_all(self) -> None:
+        self._refresh_and_show(self.current_view)
 
-    def _execute(self, cmd: str) -> None:
-        if cmd == "quit":
-            self.exit()
-            return
+    def action_goto_home(self) -> None:
+        self._show_view("home")
 
-        # Suspend the TUI, run the command in the terminal, then resume
-        with self.suspend():
-            _run_command(cmd)
+    def action_goto_models(self) -> None:
+        self._show_view("models")
 
-        # Refresh status after command
-        panel = self.query_one("#status-panel", StatusPanel)
-        panel.remove_children()
-        info = _load_status()
-        if not info:
-            panel.mount(Label("[#e66414]Aucune installation.[/#e66414] Lance [bold]Installer[/bold] pour commencer.", id="status-empty"))
+    def action_goto_personas(self) -> None:
+        self._show_view("personas")
+
+    def action_goto_tools(self) -> None:
+        self._show_view("tools")
+
+    def action_toggle_focus(self) -> None:
+        sidebar = self.query_one("#sidebar", ListView)
+        main = self.query_one("#main", ScrollableContainer)
+        if sidebar.has_focus:
+            main.focus()
         else:
-            lines = []
-            for key, val in info.items():
-                lines.append(f"[bold #ffd028]{key.capitalize():12s}[/bold #ffd028] [#e66414]{val}[/#e66414]")
-            panel.mount(Label("\n".join(lines), id="status-info"))
-
-        # Rebuild menu (options may change after install/uninstall)
-        menu = self.query_one("#menu", ListView)
-        menu.clear()
-        for key, title, desc in _build_menu_items():
-            menu.append(MenuOption(key, title, desc))
+            sidebar.focus()
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +560,7 @@ def _run_command(cmd: str) -> None:
             return
 
     elif cmd == "install":
-        from .modules.detect import detect_hardware, display_hardware
+        from .modules.detect import detect_hardware, detect_docker, display_hardware
         from .modules.decision import decide_runtime, display_decision
         from .modules.questionnaire import run_questionnaire
         from .modules.models import find_chat_models, find_embedding_models, display_candidates
@@ -273,15 +574,18 @@ def _run_command(cmd: str) -> None:
             "os": profile.os_type, "cpu": profile.cpu_brand,
             "gpu": profile.gpu_name, "ram_gb": profile.ram_total_gb,
         }
-        decision = decide_runtime(profile)
+
+        docker_info = detect_docker()
+        decision = decide_runtime(profile, docker_info=docker_info)
         display_decision(decision)
         state.runtime = decision.runtime
 
-        prefs = run_questionnaire(profile)
+        prefs = run_questionnaire(profile, decision=decision)
         state.preferences = {
             "usage": prefs.usage, "features": prefs.features,
             "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
-            "language": prefs.language, "battery_mode": prefs.battery_mode,
+            "gui_mode": prefs.gui_mode, "language": prefs.language,
+            "battery_mode": prefs.battery_mode,
         }
 
         console.print("\n[bold]Recherche de modeles chat...[/bold]")
@@ -318,10 +622,6 @@ def _run_command(cmd: str) -> None:
         else:
             from .modules.updater import run_update
             run_update(load_state(), console)
-
-    elif cmd == "personas":
-        from .modules.personas import list_personas
-        list_personas(load_state(), console)
 
     elif cmd == "uninstall":
         if not state_exists():
