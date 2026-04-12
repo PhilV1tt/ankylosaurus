@@ -14,6 +14,11 @@ class UserPreferences:
     want_gui: bool
     language: str           # "en" | "fr" | "multi"
     battery_mode: bool
+    personas: list[str] = None
+
+    def __post_init__(self):
+        if self.personas is None:
+            self.personas = []
 
 
 def run_questionnaire(profile: HardwareProfile) -> UserPreferences:
@@ -53,6 +58,29 @@ def run_questionnaire(profile: HardwareProfile) -> UserPreferences:
     if profile.os_type == "macOS":
         battery_mode = Confirm.ask("Optimize for battery life?", default=False)
 
+    # Persona selection
+    from .personas import BUILTIN_PERSONAS
+    console.print("\n[bold cyan]Personas[/bold cyan]")
+    available = list(BUILTIN_PERSONAS.keys())
+    for i, name in enumerate(available):
+        desc = BUILTIN_PERSONAS[name]["system"][:60]
+        console.print(f"  [bold]{i + 1}[/bold]. {name} — [dim]{desc}...[/dim]")
+
+    personas_raw = Prompt.ask(
+        "Install which personas? (comma-separated numbers, 'all', or 0 to skip)",
+        default="all",
+    )
+    if personas_raw.strip().lower() == "all":
+        selected_personas = list(available)
+    else:
+        selected_personas = []
+        for num_str in personas_raw.split(","):
+            num_str = num_str.strip()
+            if num_str.isdigit() and int(num_str) > 0:
+                idx = int(num_str) - 1
+                if 0 <= idx < len(available):
+                    selected_personas.append(available[idx])
+
     return UserPreferences(
         usage=usage,
         features=features,
@@ -60,4 +88,5 @@ def run_questionnaire(profile: HardwareProfile) -> UserPreferences:
         want_gui=want_gui,
         language=language,
         battery_mode=battery_mode,
+        personas=selected_personas,
     )

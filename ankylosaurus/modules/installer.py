@@ -60,6 +60,7 @@ def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
     if "rag" in prefs.features:
         steps.append(("anythingllm_installed", "Install AnythingLLM", _install_anythingllm))
     steps += [
+        ("personas_installed", "Install personas", _install_personas),
         ("runtime_configured", "Configure runtime", _configure_runtime),
         ("aliases_configured", "Configure shell aliases", _configure_aliases),
     ]
@@ -210,6 +211,17 @@ def _install_anythingllm(profile, decision, state, prefs, console):
     else:
         console.print("  [yellow]Install AnythingLLM manually from https://anythingllm.com[/yellow]")
     state.tools["anythingllm"] = True
+
+
+def _install_personas(profile, decision, state, prefs, console):
+    """Install selected personas."""
+    from .personas import install_builtin_personas
+    selected = prefs.personas if prefs.personas else None
+    install_builtin_personas(state, selected=selected)
+    if state.personas:
+        console.print(f"  [dim]Installed: {', '.join(state.personas)}[/dim]")
+    else:
+        console.print("  [dim]No personas selected.[/dim]")
 
 
 def _configure_runtime(profile, decision, state, prefs, console):
