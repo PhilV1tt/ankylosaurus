@@ -1,142 +1,245 @@
-"""TUI — friendly interactive menu with arrow-key navigation."""
+"""TUI — Textual-based interactive interface."""
 
 from __future__ import annotations
 
-import os
-
-import questionary
-from questionary import Style
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
+from textual import on
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Vertical
+from textual.widgets import Footer, Header, Label, ListItem, ListView, Static
 
 from . import __version__
-from .splash import _color_at
-
-console = Console()
-
-Q_STYLE = Style([
-    ("qmark", "fg:cyan bold"),
-    ("question", "bold"),
-    ("pointer", "fg:cyan bold"),
-    ("highlighted", "fg:cyan bold"),
-    ("selected", "fg:green"),
-    ("answer", "fg:green bold"),
-])
-
-# Menu adapts to installation state — defined in _build_menu()
-
-LOGO = r"""
-     ___    _   _ _  ____   ___     ___
-    / _ \  | \ | | |/ /\ \ / / |   / _ \
-   / /_\ \ |  \| |   /  \ V /| |  / /_\ \
-   |  _  | | . ` |  |    \ / | |  |  _  |
-   |_| |_| |_|\_|_|\_\   |_| |_|__|_| |_|
-                     S A U R U S
-"""
 
 
-def _clear():
-    os.system("cls" if os.name == "nt" else "clear")
+# ---------------------------------------------------------------------------
+# Status helpers
+# ---------------------------------------------------------------------------
 
-
-def _colored_logo() -> Text:
-    """Render the ASCII logo with the green/brown gradient."""
-    text = Text()
-    lines = LOGO.strip("\n").split("\n")
-    total_chars = sum(len(line) for line in lines)
-    char_idx = 0
-    for line in lines:
-        for ch in line:
-            pos = char_idx / max(total_chars, 1)
-            r, g, b = _color_at(pos)
-            if ch.isalpha() or ch in "/_\\|":
-                text.append(ch, style=f"bold rgb({r},{g},{b})")
-            else:
-                text.append(ch)
-            char_idx += 1
-        text.append("\n")
-    return text
-
-
-def _status_panel() -> Panel | None:
-    """Build a panel showing current install state, or None if not installed."""
+def _load_status() -> dict:
+    """Read install state and return summary dict."""
     from .modules.state import state_exists, load_state
 
     if not state_exists():
-        return Panel(
-            "[dim]Aucune installation trouvee.\n"
-            "Selectionne [bold]Installer[/bold] pour commencer.[/dim]",
-            title="[yellow]Etat[/yellow]",
-            border_style="yellow",
-            padding=(0, 2),
-        )
+        return {}
 
     state = load_state()
-    table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1))
-    table.add_column(style="bold", width=12)
-    table.add_column()
-
+    info = {}
     if state.runtime:
-        table.add_row("Runtime", f"[green]{state.runtime}[/green]")
-
-    if state.models:
-        for m in state.models:
-            role = m.get("role", "?")
-            name = m.get("ollama_name", "") or m.get("repo_id", "?").split("/")[-1]
-            size = m.get("size_gb", "?")
-            table.add_row(
-                role.capitalize(),
-                f"[green]{name}[/green] [dim]({size} GB)[/dim]",
-            )
-
+        info["runtime"] = state.runtime
+    for m in state.models:
+        role = m.get("role", "?")
+        name = m.get("ollama_name", "") or m.get("repo_id", "?").split("/")[-1]
+        size = m.get("size_gb", "?")
+        info[role] = f"{name} ({size} GB)"
     tools = [k for k, v in state.tools.items() if v]
     if tools:
-        table.add_row("Outils", "[green]" + ", ".join(tools) + "[/green]")
-
+        info["outils"] = ", ".join(tools)
     if state.personas:
-        table.add_row("Personas", f"[green]{len(state.personas)} installes[/green]")
+        info["personas"] = f"{len(state.personas)} installes"
+    return info
 
-    return Panel(
-        table,
-        title="[green]Etat actuel[/green]",
-        border_style="green",
-        padding=(0, 2),
+
+# ---------------------------------------------------------------------------
+# Widgets
+# ---------------------------------------------------------------------------
+
+class Logo(Static):
+    """Colored ASCII logo."""
+
+    LOGO = (
+        "    _   _  _ _  ___   _ _    ___   _   _  _ ___ _   _ ___ \n"
+        "   /_\\ | \\| | |/ / | / | |  / _ \\ / __| /_\\ | | | | _ | | | / __|\n"
+        "  / _ \\| .` |   <  |_\\ | |_| (_) |\\__ \\/ _ \\| |_| |   | |_| \\__ \\\n"
+        " /_/ \\_|_|\\_|_|\\_\\__/ |____\\___/ |___/_/ \\_\\___/|_|_|\\___/|___/\n"
     )
 
+    def render(self) -> str:
+        return self.LOGO
 
-def _build_menu() -> list[tuple[str, str, str]]:
-    """Return menu items as (value, label, description).
 
-    Order and availability adapt to install state.
-    """
+class StatusPanel(Static):
+    """Show current install state."""
+
+    def compose(self) -> ComposeResult:
+        info = _load_status()
+        if not info:
+            yield Label("[yellow]Aucune installation.[/yellow] Lance [bold]Installer[/bold] pour commencer.", id="status-empty")
+        else:
+            lines = []
+            for key, val in info.items():
+                lines.append(f"[bold]{key.capitalize():12s}[/bold] {val}")
+            yield Label("\n".join(lines), id="status-info")
+
+
+class MenuOption(ListItem):
+    """A single menu entry."""
+
+    def __init__(self, key: str, title: str, desc: str) -> None:
+        super().__init__()
+        self.key = key
+        self.title = title
+        self.desc = desc
+
+    def compose(self) -> ComposeResult:
+        yield Label(f"[bold]{self.title}[/bold]  [dim]{self.desc}[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# App
+# ---------------------------------------------------------------------------
+
+def _build_menu_items() -> list[tuple[str, str, str]]:
     from .modules.state import state_exists
 
     installed = state_exists()
-
     items = []
     if installed:
-        items.append(("run", "Discuter", "Lancer le modele et poser une question"))
+        items.append(("run", "Discuter", "Poser une question au modele"))
         items.append(("status", "Tableau de bord", "Voir l'etat de l'installation"))
-        items.append(("install", "Reinstaller", "Relancer l'installation complete"))
-        items.append(("check", "Verifier", "Chercher des mises a jour et nouveaux modeles"))
+        items.append(("install", "Reinstaller", "Relancer l'installation"))
+        items.append(("check", "Verifier", "Chercher des mises a jour"))
         items.append(("update", "Mettre a jour", "Mettre a jour les composants"))
-        items.append(("personas", "Personas", "Gerer les personnalites du modele"))
+        items.append(("personas", "Personas", "Gerer les personnalites"))
         items.append(("uninstall", "Desinstaller", "Supprimer les composants"))
     else:
-        items.append(("install", "Installer", "Detecter le materiel, choisir et installer un modele"))
-        items.append(("status", "Tableau de bord", "Voir l'etat de l'installation"))
-
+        items.append(("install", "Installer", "Detecter le materiel et installer un modele"))
+        items.append(("status", "Tableau de bord", "Voir l'etat"))
     items.append(("quit", "Quitter", ""))
     return items
 
 
+class AnkylosaurusApp(App):
+    """Main TUI application."""
+
+    TITLE = "ANKYLOSAURUS"
+    CSS = """
+    Screen {
+        background: $surface;
+    }
+
+    #logo {
+        width: 100%;
+        content-align: center middle;
+        color: $success;
+        text-style: bold;
+        margin-top: 1;
+    }
+
+    #subtitle {
+        width: 100%;
+        text-align: center;
+        color: $text-muted;
+        margin-bottom: 1;
+    }
+
+    #status-panel {
+        width: 60;
+        margin: 0 auto;
+        padding: 1 2;
+        border: round $primary;
+        margin-bottom: 1;
+    }
+
+    #status-empty {
+        text-align: center;
+    }
+
+    #menu {
+        width: 60;
+        margin: 0 auto;
+        height: auto;
+        max-height: 16;
+        border: round $primary;
+        padding: 0 1;
+    }
+
+    #menu > ListItem {
+        padding: 0 2;
+    }
+
+    #menu > ListItem.--highlight {
+        background: $primary 30%;
+    }
+
+    Footer {
+        background: $primary 15%;
+    }
+    """
+
+    BINDINGS = [
+        Binding("q", "quit_app", "Quitter"),
+        Binding("enter", "select_item", "Choisir", show=False),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=False)
+        with Vertical():
+            yield Logo(id="logo")
+            yield Label(
+                f"v{__version__} -- ton assistant IA local",
+                id="subtitle",
+            )
+            yield StatusPanel(id="status-panel")
+            menu = ListView(id="menu")
+            for key, title, desc in _build_menu_items():
+                menu.append(MenuOption(key, title, desc))
+            yield menu
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.query_one("#menu", ListView).focus()
+
+    @on(ListView.Selected, "#menu")
+    def handle_menu(self, event: ListView.Selected) -> None:
+        item: MenuOption = event.item  # type: ignore[assignment]
+        self._execute(item.key)
+
+    def action_quit_app(self) -> None:
+        self.exit()
+
+    def action_select_item(self) -> None:
+        menu = self.query_one("#menu", ListView)
+        if menu.highlighted_child is not None:
+            item: MenuOption = menu.highlighted_child  # type: ignore[assignment]
+            self._execute(item.key)
+
+    def _execute(self, cmd: str) -> None:
+        if cmd == "quit":
+            self.exit()
+            return
+
+        # Suspend the TUI, run the command in the terminal, then resume
+        with self.suspend():
+            _run_command(cmd)
+
+        # Refresh status after command
+        panel = self.query_one("#status-panel", StatusPanel)
+        panel.remove_children()
+        info = _load_status()
+        if not info:
+            panel.mount(Label("[yellow]Aucune installation.[/yellow] Lance [bold]Installer[/bold] pour commencer.", id="status-empty"))
+        else:
+            lines = []
+            for key, val in info.items():
+                lines.append(f"[bold]{key.capitalize():12s}[/bold] {val}")
+            panel.mount(Label("\n".join(lines), id="status-info"))
+
+        # Rebuild menu (options may change after install/uninstall)
+        menu = self.query_one("#menu", ListView)
+        menu.clear()
+        for key, title, desc in _build_menu_items():
+            menu.append(MenuOption(key, title, desc))
+
+
+# ---------------------------------------------------------------------------
+# Command runner (runs in suspended terminal)
+# ---------------------------------------------------------------------------
+
 def _run_command(cmd: str) -> None:
-    """Execute a menu action."""
+    from rich.console import Console
     from .modules.state import load_state, state_exists, save_state
 
-    console.print()
+    console = Console()
 
     if cmd == "run":
         if not state_exists():
@@ -218,53 +321,18 @@ def _run_command(cmd: str) -> None:
             from .modules.uninstaller import run_uninstall
             run_uninstall(load_state(), console)
 
-    console.print("\n[dim]Appuie sur Entree pour revenir au menu...[/dim]")
+    console.print("\n[dim]Appuie sur Entree pour revenir...[/dim]")
     try:
         input()
     except (EOFError, KeyboardInterrupt):
         pass
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 def run_tui() -> None:
-    """Main TUI loop."""
-    while True:
-        _clear()
-
-        # Logo
-        console.print(_colored_logo(), justify="center")
-        console.print(
-            f"[dim]v{__version__} -- ton assistant IA local[/dim]",
-            justify="center",
-        )
-        console.print()
-
-        # Status panel
-        panel = _status_panel()
-        if panel:
-            console.print(panel)
-            console.print()
-
-        # Menu
-        menu = _build_menu()
-        choices = []
-        for value, label, desc in menu:
-            if desc:
-                display = f"{label}  [dim]{desc}[/dim]" if console.is_terminal else f"{label} -- {desc}"
-            else:
-                display = label
-            choices.append(questionary.Choice(display, value=value))
-
-        choice = questionary.select(
-            "",
-            choices=choices,
-            style=Q_STYLE,
-            qmark="",
-            instruction="[fleches haut/bas + Entree]",
-        ).ask()
-
-        if choice is None or choice == "quit":
-            _clear()
-            console.print("[dim]A bientot.[/dim]\n")
-            break
-
-        _run_command(choice)
+    """Launch the Textual TUI."""
+    app = AnkylosaurusApp()
+    app.run()
