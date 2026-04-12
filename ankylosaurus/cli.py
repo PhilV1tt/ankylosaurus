@@ -124,7 +124,11 @@ def install():
 
 
 @app.command()
-def uninstall():
+def uninstall(
+    all_: bool = typer.Option(False, "--all", help="Remove everything without asking."),
+    models_only: bool = typer.Option(False, "--models-only", help="Remove only downloaded models."),
+    keep_notes: bool = typer.Option(False, "--keep-notes", help="Keep guides and notes."),
+):
     """Remove installed components cleanly."""
     show_splash()
     from .modules.state import load_state, state_exists
@@ -134,7 +138,10 @@ def uninstall():
         console.print("[yellow]No installation found.[/yellow]")
         raise typer.Exit()
 
-    run_uninstall(load_state(), console)
+    run_uninstall(
+        load_state(), console,
+        remove_all=all_, models_only=models_only, keep_notes=keep_notes,
+    )
 
 
 @app.command()
