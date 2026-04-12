@@ -29,7 +29,7 @@ def benchmark_retrieval():
         console.print("[red]No documents ingested. Run 'ankylosaurus rag ingest <pdf>' first.[/red]")
         return
 
-    console.print(f"\n[bold]RAG Benchmark -- Jina v5 MLX + LanceDB[/bold]")
+    console.print("\n[bold]RAG Benchmark -- Jina v5 MLX + LanceDB[/bold]")
     console.print(f"Documents: {', '.join(docs)}\n")
 
     # Warm up embedder
@@ -69,7 +69,7 @@ def benchmark_retrieval():
 
     # Summary
     console.print("[bold]Summary[/bold]")
-    console.print(f"  Model: Jina v5 MLX (1024-dim)")
+    console.print("  Model: Jina v5 MLX (1024-dim)")
     console.print(f"  Store: LanceDB ({len(docs)} doc(s))")
     console.print(f"  Model load: {load_time:.2f}s (cached after first call)")
     console.print("  Compare these results with Open WebUI RAG on the same questions.\n")
