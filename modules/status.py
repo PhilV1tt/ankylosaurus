@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from rich.columns import Columns
 
-from modules.state import InstallState, state_exists, load_state
+from modules.state import state_exists, load_state
 
 
 def show_status(console: Console) -> None:

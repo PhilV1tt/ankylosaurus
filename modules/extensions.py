@@ -100,7 +100,8 @@ def _fallback_mcp_list() -> list[dict]:
 
 
 def _fabric_menu(state: InstallState, console: Console) -> None:
-    import subprocess, shutil
+    import subprocess
+    import shutil
     if not shutil.which("fabric-ai"):
         console.print("[yellow]fabric-ai not installed — skipping.[/yellow]")
         return

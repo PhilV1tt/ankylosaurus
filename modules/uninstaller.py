@@ -8,7 +8,7 @@ import subprocess
 from rich.console import Console
 from rich.prompt import Confirm
 
-from modules.state import InstallState, save_state, STATE_FILE
+from modules.state import InstallState, STATE_FILE
 
 
 def run_uninstall(state: InstallState, console: Console) -> None:
@@ -25,7 +25,7 @@ def run_uninstall(state: InstallState, console: Console) -> None:
     ]
 
     for step in steps:
-        key, label = step[0], step[1]
+        _, label = step[0], step[1]
         if not Confirm.ask(f"Remove {label}?", default=False):
             console.print(f"  [dim]Skipped {label}[/dim]")
             continue

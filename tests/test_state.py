@@ -1,9 +1,7 @@
 """Tests for state persistence."""
 
-import json
-from pathlib import Path
 
-from modules.state import InstallState, save_state, load_state, STATE_FILE
+from modules.state import InstallState, save_state, load_state
 
 
 def test_roundtrip(tmp_path, monkeypatch):

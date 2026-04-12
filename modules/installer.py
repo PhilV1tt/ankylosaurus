@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import platform
 import shutil
 import subprocess
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from modules.state import InstallState, save_state
+from modules.state import InstallState
 from modules.decision import RuntimeDecision
 from modules.detect import HardwareProfile
 from modules.questionnaire import UserPreferences
@@ -248,7 +246,7 @@ def _configure_aliases(profile, decision, state, prefs, console):
         lines.append("alias fabric='fabric-ai'")
         lines.append("alias summarize='fabric-ai -p summarize'")
         lines.append("alias explain='fabric-ai -p explain_code'")
-    lines.append(f"# === END ANKYLOSAURUS ===\n")
+    lines.append("# === END ANKYLOSAURUS ===\n")
 
     shell_rc.write_text(content + "\n".join(lines))
     console.print(f"  [dim]Aliases added to {shell_rc}[/dim]")

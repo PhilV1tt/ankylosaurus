@@ -38,7 +38,7 @@ def _color_at(position: float) -> tuple[int, int, int]:
     return _interpolate(PALETTE[idx], PALETTE[idx + 1], frac)
 
 
-def _build_frame(tick: int, total_ticks: int) -> "Text":
+def _build_frame(tick: int, total_ticks: int):
     from rich.text import Text
 
     title = "ANKYLOSAURUS"
