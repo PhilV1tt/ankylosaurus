@@ -18,12 +18,33 @@ Named after a friend nicknamed Ankyl.
 6. **Manages extensions** — MCP servers, fabric patterns, Obsidian, Raycast
 7. **Includes 8 personas** — coder, researcher, writer, tutor, analyst, translator, summarizer, general
 
-## Quick start
+## Install
+
+One command. Works even if Python is not installed -- the script handles everything (Python, git, dependencies).
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstrap.sh | bash
+```
+
+Then:
+
+```bash
+ankylosaurus install
+```
+
+The bootstrap script:
+- Installs Python 3.10+ if missing (via Homebrew, apt, dnf, pacman, winget)
+- Installs git if missing
+- Clones the repo to `~/.ankylosaurus/app/`
+- Creates a virtualenv with all dependencies
+- Adds `ankylosaurus` command to your PATH
+
+### Manual install
 
 ```bash
 git clone https://github.com/PhilV1tt/ankylosaurus.git
 cd ankylosaurus
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python install.py install
 ```
@@ -32,13 +53,13 @@ python install.py install
 
 | Command | Description |
 |---------|-------------|
-| `python install.py install` | Full interactive setup |
-| `python install.py status` | Dashboard of current installation |
-| `python install.py check` | Check for updates & trending models |
-| `python install.py update` | Update installed components |
-| `python install.py personas list` | List all personas |
-| `python install.py personas create` | Create a custom persona |
-| `python install.py uninstall` | Clean removal |
+| `ankylosaurus install` | Full interactive setup |
+| `ankylosaurus status` | Dashboard of current installation |
+| `ankylosaurus check` | Check for updates & trending models |
+| `ankylosaurus update` | Update installed components |
+| `ankylosaurus personas list` | List all personas |
+| `ankylosaurus personas create` | Create a custom persona |
+| `ankylosaurus uninstall` | Clean removal |
 
 ## Hardware decision matrix
 
@@ -57,7 +78,8 @@ RAM to quantization: >=24 GB -> Q6\_K, 16-24 -> Q4\_K\_M, 8-16 -> Q3\_K\_M, <8 -
 
 ```
 install.py              CLI entry point (Typer)
-splash.py               Animated ankylosaur ASCII art
+splash.py               Animated gradient text splash
+bootstrap.sh            One-command installer (curl | bash)
 modules/
   state.py              Install state persistence + auto-resume
   detect.py             Hardware detection
