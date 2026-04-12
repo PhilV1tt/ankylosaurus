@@ -59,12 +59,14 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
     from questionary import Style
 
     style = Style([
-        ("qmark", "fg:cyan bold"),
+        ("qmark", "fg:#e66414 bold"),
         ("question", "bold"),
-        ("pointer", "fg:cyan bold"),
-        ("highlighted", "fg:cyan bold"),
-        ("selected", "fg:green"),
-        ("answer", "fg:green bold"),
+        ("pointer", "fg:#e66414 bold"),
+        ("highlighted", "fg:#ffd028 bold"),
+        ("selected", "fg:#e66414"),
+        ("answer", "fg:#e66414 bold"),
+        ("checkbox", "fg:#e66414"),
+        ("checkbox-selected", "fg:#e66414 bold"),
     ])
 
     console.print("\n[bold cyan]Configuration[/bold cyan]\n")
