@@ -38,6 +38,7 @@ dev = [
 
 [project.scripts]
 ankylosaurus = "ankylosaurus.cli:app"
+ankyl = "ankylosaurus.cli:app"
 
 [tool.hatch.version]
 path = "ankylosaurus/__init__.py"
