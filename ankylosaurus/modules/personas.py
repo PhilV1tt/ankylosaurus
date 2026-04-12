@@ -13,6 +13,13 @@ from .state import InstallState, save_state
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "personas"
 
+# Personas that benefit from reasoning/thinking models (Qwen)
+# All others use fast chat models (Gemma)
+REASONING_PERSONAS = {
+    "coder", "researcher", "tutor", "analyst",
+    "tuteur-maths", "dev-web", "philosophe",
+}
+
 BUILTIN_PERSONAS = {
     "coder": {
         "name": "coder",

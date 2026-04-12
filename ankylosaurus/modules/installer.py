@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from rich.console import Console
@@ -63,6 +67,7 @@ def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
     ]
     if prefs.want_gui:
         steps.append(("openwebui_installed", "Install Open WebUI", _install_openwebui))
+        steps.append(("openwebui_configured", "Configure Open WebUI", _configure_openwebui))
     if "rag" in prefs.features:
         steps.append(("anythingllm_installed", "Install AnythingLLM", _install_anythingllm))
     steps += [
@@ -250,35 +255,188 @@ def _install_fabric(profile, decision, state, prefs, console):
 
 
 def _install_openwebui(profile, decision, state, prefs, console):
-    if shutil.which("docker"):
-        # Check if container already exists
-        result = subprocess.run(
-            ["docker", "ps", "-a", "--filter", "name=open-webui", "--format", "{{.Names}}"],
-            capture_output=True, text=True,
-        )
-        if "open-webui" in result.stdout:
-            console.print("  [dim]Open WebUI container already exists.[/dim]")
-            state.tools["openwebui"] = True
-            return
-        # Determine Ollama host for the container
-        ollama_url = "http://host.docker.internal:11434" if profile.os_type == "macOS" else "http://localhost:11434"
-        _run_cmd([
-            "docker", "run", "-d",
-            "--name", "open-webui",
-            "-p", "3000:8080",
-            "-e", f"OLLAMA_BASE_URL={ollama_url}",
-            "-v", "open-webui:/app/backend/data",
-            "--restart", "unless-stopped",
-            "ghcr.io/open-webui/open-webui:main",
-        ], console)
-        console.print("  [green]Open WebUI available at http://localhost:3000[/green]")
+    if not shutil.which("docker"):
+        console.print("  [yellow]Docker not found. Install Docker Desktop first.[/yellow]")
+        state.tools["openwebui"] = False
+        return
+
+    # Check if container already exists
+    result = subprocess.run(
+        ["docker", "ps", "-a", "--filter", "name=open-webui", "--format", "{{.Names}}"],
+        capture_output=True, text=True,
+    )
+    if "open-webui" in result.stdout:
+        console.print("  [dim]Open WebUI container already exists.[/dim]")
+        # Ensure it's running
+        subprocess.run(["docker", "start", "open-webui"], capture_output=True)
+        state.tools["openwebui"] = True
+        return
+
+    # Build env vars based on runtime
+    docker_host = "host.docker.internal"
+    host_gateway_args = []
+    if profile.os_type != "macOS":
+        host_gateway_args = ["--add-host", "host.docker.internal:host-gateway"]
+
+    env_args = []
+    if decision.runtime == "lm-studio":
+        env_args += [
+            "-e", f"OPENAI_API_BASE_URL=http://{docker_host}:1234/v1",
+            "-e", "OPENAI_API_KEY=lm-studio",
+        ]
     else:
-        console.print("  [yellow]Docker not found. Install Docker, then run:[/yellow]")
-        console.print("  [dim]docker run -d --name open-webui -p 3000:8080 "
-                       "-e OLLAMA_BASE_URL=http://host.docker.internal:11434 "
-                       "-v open-webui:/app/backend/data --restart unless-stopped "
-                       "ghcr.io/open-webui/open-webui:main[/dim]")
+        env_args += [
+            "-e", f"OLLAMA_BASE_URL=http://{docker_host}:11434",
+        ]
+
+    _run_cmd([
+        "docker", "run", "-d",
+        "--name", "open-webui",
+        "-p", "3000:8080",
+        *host_gateway_args,
+        *env_args,
+        "-v", "open-webui:/app/backend/data",
+        "--restart", "unless-stopped",
+        "ghcr.io/open-webui/open-webui:latest",
+    ], console)
+    console.print("  [green]Open WebUI available at http://localhost:3000[/green]")
     state.tools["openwebui"] = True
+
+
+def _pick_base_models(state: InstallState) -> tuple[str, str]:
+    """Pick best reasoning and chat base models from installed models."""
+    model_ids = [m.get("repo_id", "").split("/")[-1].lower() for m in state.models]
+
+    # Reasoning: prefer Qwen (has thinking), fallback to first available
+    reasoning = "qwen3.5-9b-mlx"
+    for m in state.models:
+        name = m.get("repo_id", "").lower()
+        if "qwen" in name and "9b" in name:
+            reasoning = m.get("repo_id", "").split("/")[-1]
+            break
+
+    # Chat: prefer Gemma 26B-A4B (MoE, best quality), then E4B, fallback to reasoning
+    chat = reasoning
+    for m in state.models:
+        name = m.get("repo_id", "").lower()
+        if "gemma" in name and "26b" in name:
+            chat = m.get("repo_id", "").split("/")[-1]
+            break
+    else:
+        for m in state.models:
+            name = m.get("repo_id", "").lower()
+            if "gemma" in name and "e4b" in name:
+                chat = m.get("repo_id", "").split("/")[-1]
+                break
+
+    return reasoning, chat
+
+
+def _configure_openwebui(profile, decision, state, prefs, console):
+    """Create admin account and personas in Open WebUI via API."""
+    if not state.tools.get("openwebui"):
+        console.print("  [dim]Open WebUI not installed — skipping configuration.[/dim]")
+        return
+
+    if not prefs.webui_email or not prefs.webui_password:
+        console.print("  [yellow]No credentials provided — configure Open WebUI manually at http://localhost:3000[/yellow]")
+        return
+
+    base = "http://localhost:3000"
+
+    # Wait for Open WebUI to be ready
+    console.print("  Waiting for Open WebUI to start...")
+    for _ in range(30):
+        try:
+            urllib.request.urlopen(f"{base}/health", timeout=2)
+            break
+        except Exception:
+            time.sleep(2)
+    else:
+        console.print("  [yellow]Open WebUI not responding — configure manually at http://localhost:3000[/yellow]")
+        return
+
+    name = prefs.webui_name or "admin"
+    email = prefs.webui_email
+    password = prefs.webui_password
+
+    # 1. Create admin account (signup — first user becomes admin)
+    token = None
+    try:
+        payload = json.dumps({"name": name, "email": email, "password": password}).encode()
+        req = urllib.request.Request(
+            f"{base}/api/v1/auths/signup",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req) as resp:
+            token = json.loads(resp.read()).get("token")
+        console.print(f"  [green]Admin account created ({email})[/green]")
+    except urllib.error.HTTPError:
+        # Account may already exist — try signin
+        try:
+            payload = json.dumps({"email": email, "password": password}).encode()
+            req = urllib.request.Request(
+                f"{base}/api/v1/auths/signin",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req) as resp:
+                token = json.loads(resp.read()).get("token")
+            console.print("  [dim]Admin account already exists — signed in.[/dim]")
+        except Exception as e:
+            console.print(f"  [yellow]Could not authenticate: {e}[/yellow]")
+            return
+
+    # Clear password from prefs now that we have a token
+    prefs.webui_password = ""
+
+    if not token:
+        console.print("  [yellow]No auth token — skipping persona setup.[/yellow]")
+        return
+
+    # 2. Create personas from selected builtin personas
+    from .personas import BUILTIN_PERSONAS, REASONING_PERSONAS
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    selected = prefs.personas if prefs.personas else list(BUILTIN_PERSONAS.keys())
+
+    # Detect available models to pick best base for each persona type
+    reasoning_model, chat_model = _pick_base_models(state)
+
+    created = 0
+    for persona_name in selected:
+        persona = BUILTIN_PERSONAS.get(persona_name)
+        if not persona:
+            continue
+
+        base_model = reasoning_model if persona_name in REASONING_PERSONAS else chat_model
+
+        payload = json.dumps({
+            "id": persona_name,
+            "name": persona["name"].replace("-", " ").title(),
+            "base_model_id": base_model,
+            "meta": {"description": persona["system"][:80]},
+            "params": {"system": persona["system"]},
+        }).encode()
+
+        try:
+            req = urllib.request.Request(
+                f"{base}/api/v1/models/create",
+                data=payload,
+                headers=headers,
+            )
+            urllib.request.urlopen(req)
+            created += 1
+        except urllib.error.HTTPError as e:
+            if e.code not in (400, 401, 409, 422):  # 401=already exists in OWUI
+                console.print(f"  [yellow]Persona '{persona_name}' failed (HTTP {e.code})[/yellow]")
+        time.sleep(0.3)  # rate limit
+
+    if created:
+        console.print(f"  [green]{created} personas created in Open WebUI[/green]")
+    else:
+        console.print("  [dim]Personas already configured.[/dim]")
 
 
 def _install_anythingllm(profile, decision, state, prefs, console):

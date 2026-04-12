@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import secrets
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .detect import HardwareProfile
 
 
@@ -15,11 +16,10 @@ class UserPreferences:
     want_gui: bool
     language: str           # "en" | "fr" | "multi"
     battery_mode: bool
-    personas: list[str] = None
-
-    def __post_init__(self):
-        if self.personas is None:
-            self.personas = []
+    personas: list[str] = field(default_factory=list)
+    webui_name: str = ""
+    webui_email: str = ""
+    webui_password: str = field(default="", repr=False)  # ephemeral — never persist
 
 
 def _ask(question, default=None):
@@ -50,6 +50,9 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
             language="multi",
             battery_mode=False,
             personas=list(BUILTIN_PERSONAS.keys()),
+            webui_name="admin",
+            webui_email="admin@localhost",
+            webui_password=secrets.token_urlsafe(16),
         )
 
     import questionary
@@ -101,6 +104,29 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
         style=style,
     ), default=True)
 
+    webui_name = ""
+    webui_email = ""
+    webui_password = ""
+    if want_gui:
+        console.print("\n[bold cyan]Open WebUI account[/bold cyan]")
+        webui_name = _ask(questionary.text(
+            "Display name:",
+            default="admin",
+            style=style,
+        ), default="admin")
+        webui_email = _ask(questionary.text(
+            "Email:",
+            default="admin@localhost",
+            style=style,
+        ), default="admin@localhost")
+        webui_password = _ask(questionary.password(
+            "Password:",
+            style=style,
+        ), default="")
+        if not webui_password:
+            webui_password = secrets.token_urlsafe(16)
+            console.print(f"  [dim]Generated password: {webui_password}[/dim]")
+
     language = _ask(questionary.select(
         "Primary language:",
         choices=["multi", "en", "fr"],
@@ -142,4 +168,7 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
         language=language,
         battery_mode=battery_mode,
         personas=selected_personas,
+        webui_name=webui_name,
+        webui_email=webui_email,
+        webui_password=webui_password,
     )
