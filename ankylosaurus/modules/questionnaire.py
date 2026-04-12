@@ -6,6 +6,7 @@ import secrets
 import sys
 from dataclasses import dataclass, field
 from .detect import HardwareProfile
+from .decision import RuntimeDecision
 
 
 @dataclass
@@ -16,6 +17,7 @@ class UserPreferences:
     want_gui: bool
     language: str           # "en" | "fr" | "multi"
     battery_mode: bool
+    gui_mode: str = ""      # "open-webui" | "lm-studio" | "ollama-cli" | "terminal"
     personas: list[str] = field(default_factory=list)
     webui_name: str = ""
     webui_email: str = ""
@@ -33,7 +35,11 @@ def _ask(question, default=None):
     return result
 
 
-def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserPreferences:
+def run_questionnaire(
+    profile: HardwareProfile,
+    decision: RuntimeDecision | None = None,
+    yes_mode: bool = False,
+) -> UserPreferences:
     from rich.console import Console
 
     console = Console()
@@ -42,17 +48,23 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
         max_disk = min(int(profile.disk_free_gb * 0.5), 100)
         from .personas import BUILTIN_PERSONAS
         console.print("[dim]Non-interactive mode: using defaults.[/dim]")
+        ui_mode = decision.ui if decision else "open-webui"
+        want_gui = ui_mode in ("open-webui", "lm-studio")
+        webui_name = "admin" if ui_mode == "open-webui" else ""
+        webui_email = "admin@localhost" if ui_mode == "open-webui" else ""
+        webui_password = secrets.token_urlsafe(16) if ui_mode == "open-webui" else ""
         return UserPreferences(
             usage="general",
             features=["chat", "rag"],
             disk_budget_gb=min(30, max_disk),
-            want_gui=True,
+            want_gui=want_gui,
             language="multi",
             battery_mode=False,
+            gui_mode=ui_mode,
             personas=list(BUILTIN_PERSONAS.keys()),
-            webui_name="admin",
-            webui_email="admin@localhost",
-            webui_password=secrets.token_urlsafe(16),
+            webui_name=webui_name,
+            webui_email=webui_email,
+            webui_password=webui_password,
         )
 
     import questionary
@@ -100,16 +112,31 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
     ), default=str(min(30, max_disk)))
     disk_budget = int(disk_budget)
 
+    # Smart GUI recommendation based on hardware detection
+    if decision and decision.ui == "open-webui":
+        gui_hint = "Docker detected — Open WebUI recommended"
+    elif decision and decision.ui == "lm-studio":
+        gui_hint = "LM Studio GUI recommended"
+    else:
+        gui_hint = "Terminal mode (Ollama CLI)"
+
+    gui_default = decision.ui in ("open-webui", "lm-studio") if decision else True
     want_gui = _ask(questionary.confirm(
-        "Install GUI apps (Open WebUI, AnythingLLM)?",
-        default=True,
+        f"Install GUI? ({gui_hint})",
+        default=gui_default,
         style=style,
-    ), default=True)
+    ), default=gui_default)
+
+    gui_mode = ""
+    if want_gui and decision:
+        gui_mode = decision.ui
+    elif not want_gui:
+        gui_mode = "terminal"
 
     webui_name = ""
     webui_email = ""
     webui_password = ""
-    if want_gui:
+    if want_gui and gui_mode == "open-webui":
         console.print("\n[bold cyan]Open WebUI account[/bold cyan]")
         webui_name = _ask(questionary.text(
             "Display name:",
@@ -169,6 +196,7 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
         want_gui=want_gui,
         language=language,
         battery_mode=battery_mode,
+        gui_mode=gui_mode,
         personas=selected_personas,
         webui_name=webui_name,
         webui_email=webui_email,

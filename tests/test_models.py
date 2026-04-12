@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone, timedelta
 
+import pytest
+
 from ankylosaurus.modules.models import (
     ModelCandidate,
     _compute_scores,
@@ -9,7 +11,9 @@ from ankylosaurus.modules.models import (
     _freshness,
     _recency,
     _days_since,
+    _effective_model_memory,
 )
+from ankylosaurus.modules.decision import RuntimeDecision
 
 
 def _make_candidate(
@@ -118,3 +122,32 @@ def test_days_since_invalid():
     now = datetime.now(timezone.utc)
     result = _days_since("not-a-date", now)
     assert result == 365.0
+
+
+# --- Effective model memory tests ---
+
+def _make_decision(**overrides):
+    defaults = dict(
+        runtime="ollama", backend="cuda", quantization="Q4_K_M",
+        max_model_params_b=10.0, max_context_length=8192,
+        ui="terminal",
+    )
+    defaults.update(overrides)
+    return RuntimeDecision(**defaults)
+
+
+def test_effective_mem_deducts_docker_overhead(m5_profile):
+    decision_docker = _make_decision(ui="open-webui")
+    decision_no_docker = _make_decision(ui="ollama-cli")
+
+    mem_with = _effective_model_memory(m5_profile, decision_docker)
+    mem_without = _effective_model_memory(m5_profile, decision_no_docker)
+
+    assert mem_without - mem_with == pytest.approx(2.0)
+
+
+def test_effective_mem_discrete_gpu_includes_overflow(rtx2070_profile):
+    decision = _make_decision()
+    mem = _effective_model_memory(rtx2070_profile, decision)
+    # Should be more than just VRAM (8GB) since RAM overflow is included
+    assert mem > 8.0

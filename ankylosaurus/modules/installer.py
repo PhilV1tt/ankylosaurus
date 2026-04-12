@@ -65,7 +65,13 @@ def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
         ("llm_cli_installed", "Install llm CLI", _install_llm_cli),
         ("fabric_installed", "Install fabric-ai", _install_fabric),
     ]
-    if prefs.want_gui:
+    if prefs.gui_mode == "open-webui":
+        steps.append(("openwebui_installed", "Install Open WebUI", _install_openwebui))
+        steps.append(("openwebui_configured", "Configure Open WebUI", _configure_openwebui))
+    elif prefs.gui_mode == "lm-studio":
+        steps.append(("lmstudio_gui_noted", "Note LM Studio GUI", _note_lmstudio_gui))
+    elif not prefs.gui_mode and prefs.want_gui:
+        # Backward compat: old prefs without gui_mode
         steps.append(("openwebui_installed", "Install Open WebUI", _install_openwebui))
         steps.append(("openwebui_configured", "Configure Open WebUI", _configure_openwebui))
     if "rag" in prefs.features:
@@ -254,10 +260,37 @@ def _install_fabric(profile, decision, state, prefs, console):
     raise RuntimeError("fabric-ai not available via pip or pipx")
 
 
+def _openwebui_fallback(profile, state, console):
+    """When Open WebUI can't be installed, suggest the next best UI."""
+    state.tools["openwebui"] = False
+    if profile.os_type in ("macOS", "Windows"):
+        console.print("  [dim]Use LM Studio's built-in GUI instead.[/dim]")
+    else:
+        console.print("  [dim]Use 'ollama run <model>' for interactive chat.[/dim]")
+
+
+def _note_lmstudio_gui(profile, decision, state, prefs, console):
+    """Note that LM Studio's built-in GUI is the recommended interface."""
+    if shutil.which("lms"):
+        console.print("  [dim]LM Studio GUI available — launch the app to chat.[/dim]")
+    else:
+        console.print("  [yellow]Install LM Studio from https://lmstudio.ai for GUI access.[/yellow]")
+    state.tools["lm_studio_gui"] = True
+
+
 def _install_openwebui(profile, decision, state, prefs, console):
     if not shutil.which("docker"):
-        console.print("  [yellow]Docker not found. Install Docker Desktop first.[/yellow]")
-        state.tools["openwebui"] = False
+        console.print("  [yellow]Docker not found — falling back.[/yellow]")
+        _openwebui_fallback(profile, state, console)
+        return
+
+    # Check if Docker daemon is running
+    result = subprocess.run(
+        ["docker", "info"], capture_output=True, text=True, timeout=10,
+    )
+    if result.returncode != 0:
+        console.print("  [yellow]Docker daemon not running — falling back.[/yellow]")
+        _openwebui_fallback(profile, state, console)
         return
 
     # Check if container already exists
