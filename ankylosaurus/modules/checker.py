@@ -8,7 +8,7 @@ import subprocess
 from rich.console import Console
 from rich.table import Table
 
-from modules.state import InstallState
+from .state import InstallState
 
 
 def run_check(state: InstallState, console: Console) -> None:

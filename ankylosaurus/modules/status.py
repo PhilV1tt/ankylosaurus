@@ -5,7 +5,7 @@ from __future__ import annotations
 from rich.console import Console
 from rich.panel import Panel
 
-from modules.state import state_exists, load_state
+from .state import state_exists, load_state
 
 
 def show_status(console: Console) -> None:

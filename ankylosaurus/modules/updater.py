@@ -8,7 +8,7 @@ import subprocess
 from rich.console import Console
 from rich.prompt import Confirm
 
-from modules.state import InstallState, save_state
+from .state import InstallState, save_state
 
 
 def run_update(state: InstallState, console: Console) -> None:

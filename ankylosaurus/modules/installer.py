@@ -8,10 +8,10 @@ from pathlib import Path
 
 from rich.console import Console
 
-from modules.state import InstallState
-from modules.decision import RuntimeDecision
-from modules.detect import HardwareProfile
-from modules.questionnaire import UserPreferences
+from .state import InstallState
+from .decision import RuntimeDecision
+from .detect import HardwareProfile
+from .questionnaire import UserPreferences
 
 
 def run_install(

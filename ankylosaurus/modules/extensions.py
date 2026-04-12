@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt, Confirm
 
-from modules.state import InstallState, save_state
+from .state import InstallState, save_state
 
 
 def show_extension_menu(state: InstallState, console: Console) -> None:

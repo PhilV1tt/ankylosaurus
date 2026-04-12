@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from modules.state import InstallState
+from .state import InstallState
 
 
 def save_guide(state: InstallState, output: Path | None = None) -> Path:
@@ -45,7 +45,7 @@ def _header() -> str:
     return """# ANKYLOSAURUS -- Your Local LLM Setup Guide
 
 This guide was generated based on your specific installation.
-Run `python install.py status` to see your current setup."""
+Run `ankylosaurus status` to see your current setup."""
 
 
 def _runtime_section(state: InstallState) -> str:
@@ -113,7 +113,7 @@ def _anythingllm_section() -> str:
 
 def _personas_section(state: InstallState) -> str:
     lines = ["## Personas\n", f"Available: {', '.join(state.personas)}\n"]
-    lines.append("- **List**: `python install.py personas`")
+    lines.append("- **List**: `ankylosaurus personas`")
     lines.append("- **Templates**: `templates/personas/*.json`")
     return "\n".join(lines)
 
@@ -123,8 +123,8 @@ def _management_section() -> str:
 
 | Command | What it does |
 |---------|-------------|
-| `python install.py status` | Show installation dashboard |
-| `python install.py check` | Check for updates & new models |
-| `python install.py update` | Update all components |
-| `python install.py personas` | Manage LLM personas |
-| `python install.py uninstall` | Clean removal |"""
+| `ankylosaurus status` | Show installation dashboard |
+| `ankylosaurus check` | Check for updates & new models |
+| `ankylosaurus update` | Update all components |
+| `ankylosaurus personas` | Manage LLM personas |
+| `ankylosaurus uninstall` | Clean removal |"""

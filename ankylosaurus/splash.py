@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import time
 
-VERSION = "1.0"
-HEADER = "ANKYLOSAURUS v{} -- local-llm-setup".format(VERSION)
+from . import __version__
+
+HEADER = "ANKYLOSAURUS v{} -- local-llm-setup".format(__version__)
 
 # Gradient palette: dark green -> green -> yellow/brown -> dark
 PALETTE = [

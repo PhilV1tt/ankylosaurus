@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt
 
-from modules.state import InstallState, save_state
+from .state import InstallState, save_state
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "personas"
 

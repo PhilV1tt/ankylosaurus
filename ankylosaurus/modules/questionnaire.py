@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from modules.detect import HardwareProfile
+from .detect import HardwareProfile
 
 
 @dataclass

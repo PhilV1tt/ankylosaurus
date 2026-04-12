@@ -184,32 +184,31 @@ else
 fi
 
 pip install --upgrade pip --quiet 2>/dev/null
-pip install -r "$INSTALL_DIR/requirements.txt" --quiet 2>/dev/null
+pip install "$INSTALL_DIR" --quiet 2>/dev/null
 
-# 5. Create launcher script
+# 5. Create launcher wrapper
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
 
-cat > "$BIN_DIR/ankylosaurus" << 'LAUNCHER'
-#!/usr/bin/env bash
-INSTALL_DIR="$HOME/.ankylosaurus/app"
-if [ -f "$INSTALL_DIR/.venv/Scripts/activate" ]; then
-    source "$INSTALL_DIR/.venv/Scripts/activate"
-else
-    source "$INSTALL_DIR/.venv/bin/activate"
+VENV_BIN="$INSTALL_DIR/.venv/bin"
+if [ "$OS" = "windows" ]; then
+    VENV_BIN="$INSTALL_DIR/.venv/Scripts"
 fi
-python "$INSTALL_DIR/install.py" "$@"
+
+cat > "$BIN_DIR/ankylosaurus" << LAUNCHER
+#!/usr/bin/env bash
+exec "$VENV_BIN/ankylosaurus" "\$@"
 LAUNCHER
 chmod +x "$BIN_DIR/ankylosaurus"
 
 # 6. Ensure ~/.local/bin is in PATH
 add_to_path() {
-    local rc="$1"
-    if [ -f "$rc" ] && grep -q '.local/bin' "$rc" 2>/dev/null; then
+    local rc="\$1"
+    if [ -f "\$rc" ] && grep -q '.local/bin' "\$rc" 2>/dev/null; then
         return
     fi
-    if [ -f "$rc" ] || [ "$rc" = "$HOME/.zshrc" ] || [ "$rc" = "$HOME/.bashrc" ]; then
-        printf '\n# ANKYLOSAURUS\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
+    if [ -f "\$rc" ] || [ "\$rc" = "\$HOME/.zshrc" ] || [ "\$rc" = "\$HOME/.bashrc" ]; then
+        printf '\n# ANKYLOSAURUS\nexport PATH="\$HOME/.local/bin:\$PATH"\n' >> "\$rc"
     fi
 }
 

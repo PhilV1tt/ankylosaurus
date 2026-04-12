@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone, timedelta
 
-from modules.models import (
+from ankylosaurus.modules.models import (
     ModelCandidate,
     _compute_scores,
     _normalize,

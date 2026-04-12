@@ -1,6 +1,6 @@
 """Tests for splash module."""
 
-from splash import _build_frame, _color_at
+from ankylosaurus.splash import _build_frame, _color_at
 
 
 def test_build_frame_returns_text():

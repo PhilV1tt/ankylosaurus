@@ -1,6 +1,6 @@
 """Tests for decision engine."""
 
-from modules.decision import decide_runtime
+from ankylosaurus.modules.decision import decide_runtime
 
 
 def test_m5_gets_mlx(m5_profile):

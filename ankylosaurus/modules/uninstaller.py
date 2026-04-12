@@ -8,7 +8,7 @@ import subprocess
 from rich.console import Console
 from rich.prompt import Confirm
 
-from modules.state import InstallState, STATE_FILE
+from .state import InstallState, STATE_FILE
 
 
 def run_uninstall(state: InstallState, console: Console) -> None:

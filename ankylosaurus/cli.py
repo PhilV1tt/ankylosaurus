@@ -2,16 +2,38 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 import typer
 from rich.console import Console
 
-from splash import show_splash
+from . import __version__
+from .splash import show_splash
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        print("ankylosaurus {}".format(__version__))
+        raise typer.Exit()
+
 
 app = typer.Typer(
     name="ankylosaurus",
     no_args_is_help=True,
     help="ANKYLOSAURUS -- automated local LLM setup for any machine",
 )
+
+
+@app.callback()
+def main(
+    version: Optional[bool] = typer.Option(
+        None, "--version", "-V", callback=_version_callback, is_eager=True,
+        help="Show version and exit.",
+    ),
+) -> None:
+    pass
+
+
 console = Console()
 
 
@@ -19,15 +41,15 @@ console = Console()
 def install():
     """Full interactive installation: detect hardware, pick runtime & models, install everything."""
     show_splash()
-    from modules.detect import detect_hardware, display_hardware
-    from modules.decision import decide_runtime, display_decision
-    from modules.questionnaire import run_questionnaire
-    from modules.models import find_chat_models, find_embedding_models, display_candidates
-    from modules.installer import run_install
-    from modules.extensions import show_extension_menu
-    from modules.personas import install_builtin_personas
-    from modules.guide import save_guide
-    from modules.state import load_state, save_state
+    from .modules.detect import detect_hardware, display_hardware
+    from .modules.decision import decide_runtime, display_decision
+    from .modules.questionnaire import run_questionnaire
+    from .modules.models import find_chat_models, find_embedding_models, display_candidates
+    from .modules.installer import run_install
+    from .modules.extensions import show_extension_menu
+    from .modules.personas import install_builtin_personas
+    from .modules.guide import save_guide
+    from .modules.state import load_state, save_state
 
     state = load_state()
 
@@ -87,8 +109,8 @@ def install():
 def uninstall():
     """Remove installed components cleanly."""
     show_splash()
-    from modules.state import load_state, state_exists
-    from modules.uninstaller import run_uninstall
+    from .modules.state import load_state, state_exists
+    from .modules.uninstaller import run_uninstall
 
     if not state_exists():
         console.print("[yellow]No installation found.[/yellow]")
@@ -101,8 +123,8 @@ def uninstall():
 def update():
     """Update installed components to latest versions."""
     show_splash()
-    from modules.state import load_state, state_exists
-    from modules.updater import run_update
+    from .modules.state import load_state, state_exists
+    from .modules.updater import run_update
 
     if not state_exists():
         console.print("[yellow]No installation found.[/yellow]")
@@ -115,7 +137,7 @@ def update():
 def status():
     """Show dashboard of current installation state."""
     show_splash()
-    from modules.status import show_status
+    from .modules.status import show_status
     show_status(console)
 
 
@@ -123,8 +145,8 @@ def status():
 def check():
     """Check for available updates and new models."""
     show_splash()
-    from modules.state import load_state, state_exists
-    from modules.checker import run_check
+    from .modules.state import load_state, state_exists
+    from .modules.checker import run_check
 
     if not state_exists():
         console.print("[yellow]No installation found.[/yellow]")
@@ -140,8 +162,8 @@ def personas(
 ):
     """Manage LLM personas (list, create, edit, delete)."""
     show_splash()
-    from modules.state import load_state
-    from modules.personas import list_personas, create_persona, edit_persona, delete_persona
+    from .modules.state import load_state
+    from .modules.personas import list_personas, create_persona, edit_persona, delete_persona
 
     state = load_state()
 
@@ -151,7 +173,7 @@ def personas(
         persona = create_persona(console)
         if persona["name"] not in state.personas:
             state.personas.append(persona["name"])
-            from modules.state import save_state
+            from .modules.state import save_state
             save_state(state)
     elif action == "edit":
         if not name:

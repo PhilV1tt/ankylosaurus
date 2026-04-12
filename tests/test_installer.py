@@ -1,8 +1,8 @@
 """Tests for installer step resume logic."""
 
-from modules.state import InstallState
-from modules.installer import _build_steps
-from modules.questionnaire import UserPreferences
+from ankylosaurus.modules.state import InstallState
+from ankylosaurus.modules.installer import _build_steps
+from ankylosaurus.modules.questionnaire import UserPreferences
 
 
 def _make_prefs(**overrides):

@@ -6,9 +6,9 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from modules.decision import RuntimeDecision
-from modules.detect import HardwareProfile
-from modules.questionnaire import UserPreferences
+from .decision import RuntimeDecision
+from .detect import HardwareProfile
+from .questionnaire import UserPreferences
 
 
 @dataclass

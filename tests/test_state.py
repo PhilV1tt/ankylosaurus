@@ -1,12 +1,12 @@
 """Tests for state persistence."""
 
 
-from modules.state import InstallState, save_state, load_state
+from ankylosaurus.modules.state import InstallState, save_state, load_state
 
 
 def test_roundtrip(tmp_path, monkeypatch):
     test_file = tmp_path / "state.json"
-    monkeypatch.setattr("modules.state.STATE_FILE", test_file)
+    monkeypatch.setattr("ankylosaurus.modules.state.STATE_FILE", test_file)
 
     state = InstallState(runtime="lm-studio", runtime_version="0.4.10")
     state.mark_step("runtime_installed")
@@ -20,7 +20,7 @@ def test_roundtrip(tmp_path, monkeypatch):
 
 def test_mark_step_idempotent(tmp_path, monkeypatch):
     test_file = tmp_path / "state.json"
-    monkeypatch.setattr("modules.state.STATE_FILE", test_file)
+    monkeypatch.setattr("ankylosaurus.modules.state.STATE_FILE", test_file)
 
     state = InstallState()
     state.mark_step("step1")
