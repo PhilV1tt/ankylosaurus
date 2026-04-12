@@ -1,4 +1,4 @@
-"""Animated ankylosaur ASCII art splash screen using Rich."""
+"""Animated ANKYLOSAURUS splash text using Rich."""
 
 from __future__ import annotations
 
@@ -7,90 +7,55 @@ import time
 VERSION = "1.0"
 HEADER = "ANKYLOSAURUS v{} -- local-llm-setup".format(VERSION)
 
-# fmt: off
-BODY_LINES = [
-    "         .--~~--.",
-    "        /  @  @  \\",
-    "       |  (====)  |",
-    "        \\  \\__/  /",
-    "    .----`------'----.",
-    "   /  /#\\  /#\\  /#\\  \\",
-    "  |  [###][###][###]  |",
-    "  |   \\#/  \\#/  \\#/   |",
-    "   \\_                _/",
-    "     |  |      |  |",
-    "     |__|      |__|",
-]
-# fmt: on
-
-# Tail attaches to line 4 (the back ridge)
-TAIL_LINE = 4
-TAIL_FRAMES = [
-    "~~~<@",
-    " ~~~<@",
-    "  ~~~<@",
-    " ~~~<@",
+# Gradient palette: dark green -> green -> yellow/brown -> dark
+PALETTE = [
+    (30, 80, 30),
+    (50, 120, 50),
+    (70, 140, 70),
+    (120, 140, 50),
+    (180, 140, 60),
+    (160, 120, 40),
+    (100, 80, 30),
+    (40, 40, 40),
 ]
 
-EYES_OPEN = "@  @"
-EYES_SHUT = "-  -"
 
-# Color map
-COLORS = {
-    "#": "rgb(180,140,60)",
-    "@": "rgb(200,200,200)",
-    "~": "rgb(120,120,120)",
-    "<": "rgb(120,120,120)",
-    "/": "rgb(50,120,50)",
-    "\\": "rgb(50,120,50)",
-    "|": "rgb(50,120,50)",
-    ".": "rgb(50,120,50)",
-    "-": "rgb(50,120,50)",
-    "'": "rgb(50,120,50)",
-    "`": "rgb(50,120,50)",
-    "_": "rgb(50,120,50)",
-    "(": "rgb(70,140,70)",
-    ")": "rgb(70,140,70)",
-    "=": "rgb(70,140,70)",
-    "[": "rgb(160,120,40)",
-    "]": "rgb(160,120,40)",
-}
+def _interpolate(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+    return (
+        int(c1[0] + (c2[0] - c1[0]) * t),
+        int(c1[1] + (c2[1] - c1[1]) * t),
+        int(c1[2] + (c2[2] - c1[2]) * t),
+    )
 
 
-def _colorize_line(line: str) -> "Text":
-    from rich.text import Text
-    text = Text(line)
-    for i, ch in enumerate(line):
-        style = COLORS.get(ch)
-        if style:
-            text.stylize(style, i, i + 1)
-    return text
+def _color_at(position: float) -> tuple[int, int, int]:
+    n = len(PALETTE)
+    scaled = position * (n - 1)
+    idx = int(scaled)
+    frac = scaled - idx
+    if idx >= n - 1:
+        return PALETTE[-1]
+    return _interpolate(PALETTE[idx], PALETTE[idx + 1], frac)
 
 
 def _build_frame(tick: int, total_ticks: int) -> "Text":
     from rich.text import Text
 
-    tail_idx = tick % len(TAIL_FRAMES)
-    tail = TAIL_FRAMES[tail_idx]
+    title = "ANKYLOSAURUS"
+    text = Text(title, justify="center")
+    wave_speed = 2.0
+    offset = tick / total_ticks * wave_speed
 
-    blink_start = int(total_ticks * 0.4)
-    blink_end = int(total_ticks * 0.5)
-    blink = blink_start <= tick < blink_end
+    for i in range(len(title)):
+        pos = ((i / len(title)) + offset) % 1.0
+        r, g, b = _color_at(pos)
+        text.stylize("bold rgb({},{},{})".format(r, g, b), i, i + 1)
 
-    result = Text()
-    for i, line in enumerate(BODY_LINES):
-        if blink:
-            line = line.replace(EYES_OPEN, EYES_SHUT)
-        if i == TAIL_LINE:
-            line = line + tail
-        result.append(_colorize_line(line))
-        result.append("\n")
-
-    return result
+    return text
 
 
 def show_splash(duration: float = 1.5) -> None:
-    """Display animated ankylosaur, then print header."""
+    """Display animated ANKYLOSAURUS text, then print header."""
     try:
         from rich.live import Live
         from rich.console import Console
@@ -100,14 +65,12 @@ def show_splash(duration: float = 1.5) -> None:
         total_frames = 24
         interval = duration / total_frames
 
-        with Live(console=console, refresh_per_second=16, transient=True) as live:
+        with Live(console=console, refresh_per_second=20, transient=True) as live:
             for tick in range(total_frames):
                 frame = _build_frame(tick, total_frames)
                 live.update(frame)
                 time.sleep(interval)
 
-        final = _build_frame(total_frames - 1, total_frames)
-        console.print(final)
         console.print(Text(HEADER, justify="center", style="bold rgb(50,120,50)"))
         console.print()
 
@@ -116,10 +79,7 @@ def show_splash(duration: float = 1.5) -> None:
 
 
 def _fallback_splash() -> None:
-    print()
-    for line in BODY_LINES:
-        print(line)
-    print("\n  {}\n".format(HEADER))
+    print("\n  ANKYLOSAURUS\n  {}\n".format(HEADER))
 
 
 if __name__ == "__main__":

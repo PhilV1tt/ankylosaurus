@@ -1,20 +1,6 @@
 # ANKYLOSAURUS
 
-```
-         .--~~--.
-        /  @  @  \
-       |  (====)  |
-        \  \__/  /
-    .----`------'----.~~~<@
-   /  /#\  /#\  /#\  \
-  |  [###][###][###]  |
-  |   \#/  \#/  \#/   |
-   \_                _/
-     |  |      |  |
-     |__|      |__|
-```
-
-**Automated local LLM setup CLI** - detect your hardware, pick the best runtime & models, install everything in one command.
+**Automated local LLM setup CLI** -- detect your hardware, pick the best runtime & models, install everything in one command.
 
 No cloud. No subscription. No data leaves your machine.
 
