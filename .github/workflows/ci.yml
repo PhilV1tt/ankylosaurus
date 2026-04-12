@@ -27,6 +27,8 @@ jobs:
           pip install pyarrow lancedb
 
       - name: Run tests
+        env:
+          PYTHONUTF8: "1"
         run: python -m pytest tests/ -v
 
   lint:
