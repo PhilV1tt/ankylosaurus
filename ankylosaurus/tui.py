@@ -505,10 +505,15 @@ class AnkylosaurusApp(App):
             self.exit()
             return
 
-        # Suspend-to-terminal commands
+        # Suspend-to-terminal commands — run as subprocess to avoid asyncio conflict
         if key in ("install", "run", "uninstall", "update", "check"):
             with self.suspend():
-                _run_command(key)
+                subprocess.run(["ankylosaurus", key])
+                print("\nAppuie sur Entree pour revenir...")
+                try:
+                    input()
+                except (EOFError, KeyboardInterrupt):
+                    pass
             self._refresh_and_show(self.current_view)
             return
 
@@ -539,102 +544,6 @@ class AnkylosaurusApp(App):
             main.focus()
         else:
             sidebar.focus()
-
-
-# ---------------------------------------------------------------------------
-# Command runner (runs in suspended terminal)
-# ---------------------------------------------------------------------------
-
-def _run_command(cmd: str) -> None:
-    from rich.console import Console
-    from .modules.state import load_state, state_exists, save_state
-
-    console = Console()
-
-    if cmd == "run":
-        if not state_exists():
-            console.print("[yellow]Aucune installation trouvee.[/yellow]")
-        else:
-            from .modules.runner import run_model
-            run_model(load_state(), console=console)
-            return
-
-    elif cmd == "install":
-        from .modules.detect import detect_hardware, detect_docker, display_hardware
-        from .modules.decision import decide_runtime, display_decision
-        from .modules.questionnaire import run_questionnaire
-        from .modules.models import find_chat_models, find_embedding_models, display_candidates
-        from .modules.installer import run_install
-        from .modules.guide import save_guide
-
-        state = load_state()
-        profile = detect_hardware()
-        display_hardware(profile)
-        state.hardware = {
-            "os": profile.os_type, "cpu": profile.cpu_brand,
-            "gpu": profile.gpu_name, "ram_gb": profile.ram_total_gb,
-        }
-
-        docker_info = detect_docker()
-        decision = decide_runtime(profile, docker_info=docker_info)
-        display_decision(decision)
-        state.runtime = decision.runtime
-
-        prefs = run_questionnaire(profile, decision=decision)
-        state.preferences = {
-            "usage": prefs.usage, "features": prefs.features,
-            "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
-            "gui_mode": prefs.gui_mode, "language": prefs.language,
-            "battery_mode": prefs.battery_mode,
-        }
-
-        console.print("\n[bold]Recherche de modeles chat...[/bold]")
-        chat_candidates = find_chat_models(decision, profile, prefs)
-        chat_choice = display_candidates(chat_candidates, "Chat Models")
-        if chat_choice >= 0:
-            state.models.append({"role": "chat", **chat_candidates[chat_choice].__dict__})
-
-        console.print("\n[bold]Recherche de modeles embedding...[/bold]")
-        emb_candidates = find_embedding_models(decision, profile)
-        emb_choice = display_candidates(emb_candidates, "Embedding Models")
-        if emb_choice >= 0:
-            state.models.append({"role": "embedding", **emb_candidates[emb_choice].__dict__})
-
-        save_state(state)
-        run_install(profile, decision, state, prefs, console)
-        guide_path = save_guide(state)
-        console.print(f"\n[bold green]Guide enregistre : {guide_path}[/bold green]")
-
-    elif cmd == "status":
-        from .modules.status import show_status
-        show_status(console)
-
-    elif cmd == "check":
-        if not state_exists():
-            console.print("[yellow]Aucune installation trouvee.[/yellow]")
-        else:
-            from .modules.checker import run_check
-            run_check(load_state(), console)
-
-    elif cmd == "update":
-        if not state_exists():
-            console.print("[yellow]Aucune installation trouvee.[/yellow]")
-        else:
-            from .modules.updater import run_update
-            run_update(load_state(), console)
-
-    elif cmd == "uninstall":
-        if not state_exists():
-            console.print("[yellow]Aucune installation trouvee.[/yellow]")
-        else:
-            from .modules.uninstaller import run_uninstall
-            run_uninstall(load_state(), console)
-
-    console.print("\n[dim]Appuie sur Entree pour revenir...[/dim]")
-    try:
-        input()
-    except (EOFError, KeyboardInterrupt):
-        pass
 
 
 # ---------------------------------------------------------------------------

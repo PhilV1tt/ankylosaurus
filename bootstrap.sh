@@ -184,6 +184,7 @@ else
 fi
 
 pip install --upgrade pip --quiet 2>/dev/null
+pip install "$INSTALL_DIR" --force-reinstall --no-deps --quiet 2>/dev/null
 pip install "$INSTALL_DIR" --quiet 2>/dev/null
 
 # 5. Create launcher wrapper
@@ -200,6 +201,13 @@ cat > "$BIN_DIR/ankylosaurus" << LAUNCHER
 exec "$VENV_BIN/ankylosaurus" "\$@"
 LAUNCHER
 chmod +x "$BIN_DIR/ankylosaurus"
+
+# Alias: ankyl
+cat > "$BIN_DIR/ankyl" << LAUNCHER
+#!/usr/bin/env bash
+exec "$VENV_BIN/ankylosaurus" "\$@"
+LAUNCHER
+chmod +x "$BIN_DIR/ankyl"
 
 # 6. Ensure ~/.local/bin is in PATH
 add_to_path() {
