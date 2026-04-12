@@ -338,8 +338,6 @@ def _install_openwebui(profile, decision, state, prefs, console):
 
 def _pick_base_models(state: InstallState) -> tuple[str, str]:
     """Pick best reasoning and chat base models from installed models."""
-    model_ids = [m.get("repo_id", "").split("/")[-1].lower() for m in state.models]
-
     # Reasoning: prefer Qwen (has thinking), fallback to first available
     reasoning = "qwen3.5-9b-mlx"
     for m in state.models:
