@@ -23,7 +23,6 @@ class UserPreferences:
 
 def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserPreferences:
     from rich.console import Console
-    from rich.prompt import Prompt, IntPrompt, Confirm
 
     console = Console()
 
@@ -41,60 +40,89 @@ def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserP
             personas=list(BUILTIN_PERSONAS.keys()),
         )
 
+    import questionary
+    from questionary import Style
+
+    style = Style([
+        ("qmark", "fg:cyan bold"),
+        ("question", "bold"),
+        ("pointer", "fg:cyan bold"),
+        ("highlighted", "fg:cyan bold"),
+        ("selected", "fg:green"),
+        ("answer", "fg:green bold"),
+    ])
+
     console.print("\n[bold cyan]Configuration[/bold cyan]\n")
 
-    usage = Prompt.ask(
-        "Primary usage",
-        choices=["code", "studies", "writing", "general"],
+    usage = questionary.select(
+        "Primary usage:",
+        choices=["general", "code", "studies", "writing"],
         default="general",
-    )
+        style=style,
+    ).ask()
 
-    features_raw = Prompt.ask(
-        "Features needed (comma-separated)",
-        default="chat,rag",
-    )
-    features = [f.strip() for f in features_raw.split(",") if f.strip()]
+    features = questionary.checkbox(
+        "Features:",
+        choices=[
+            questionary.Choice("chat", checked=True),
+            questionary.Choice("rag", checked=True),
+            questionary.Choice("notes"),
+            questionary.Choice("agents"),
+        ],
+        style=style,
+    ).ask()
+    if not features:
+        features = ["chat"]
 
     max_disk = min(int(profile.disk_free_gb * 0.5), 100)
-    disk_budget = IntPrompt.ask(
-        f"Disk budget for models (GB, max ~{max_disk})",
-        default=min(30, max_disk),
-    )
+    disk_budget = questionary.text(
+        f"Disk budget for models in GB (max ~{max_disk}):",
+        default=str(min(30, max_disk)),
+        validate=lambda v: v.isdigit() and 0 < int(v) <= max_disk,
+        style=style,
+    ).ask()
+    disk_budget = int(disk_budget)
 
-    want_gui = Confirm.ask("Install GUI apps (Msty, AnythingLLM)?", default=True)
+    want_gui = questionary.confirm(
+        "Install GUI apps (Msty, AnythingLLM)?",
+        default=True,
+        style=style,
+    ).ask()
 
-    language = Prompt.ask(
-        "Primary language",
-        choices=["en", "fr", "multi"],
+    language = questionary.select(
+        "Primary language:",
+        choices=["multi", "en", "fr"],
         default="multi",
-    )
+        style=style,
+    ).ask()
 
     battery_mode = False
     if profile.os_type == "macOS":
-        battery_mode = Confirm.ask("Optimize for battery life?", default=False)
+        battery_mode = questionary.confirm(
+            "Optimize for battery life?",
+            default=False,
+            style=style,
+        ).ask()
 
     # Persona selection
     from .personas import BUILTIN_PERSONAS
-    console.print("\n[bold cyan]Personas[/bold cyan]")
-    available = list(BUILTIN_PERSONAS.keys())
-    for i, name in enumerate(available):
-        desc = BUILTIN_PERSONAS[name]["system"][:60]
-        console.print(f"  [bold]{i + 1}[/bold]. {name} — [dim]{desc}...[/dim]")
 
-    personas_raw = Prompt.ask(
-        "Install which personas? (comma-separated numbers, 'all', or 0 to skip)",
-        default="all",
-    )
-    if personas_raw.strip().lower() == "all":
-        selected_personas = list(available)
-    else:
+    persona_choices = [
+        questionary.Choice(
+            f"{name} -- {data['system'][:50]}...",
+            value=name,
+            checked=True,
+        )
+        for name, data in BUILTIN_PERSONAS.items()
+    ]
+
+    selected_personas = questionary.checkbox(
+        "Personas to install:",
+        choices=persona_choices,
+        style=style,
+    ).ask()
+    if selected_personas is None:
         selected_personas = []
-        for num_str in personas_raw.split(","):
-            num_str = num_str.strip()
-            if num_str.isdigit() and int(num_str) > 0:
-                idx = int(num_str) - 1
-                if 0 <= idx < len(available):
-                    selected_personas.append(available[idx])
 
     return UserPreferences(
         usage=usage,
