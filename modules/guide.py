@@ -42,7 +42,7 @@ def save_guide(state: InstallState, output: Path | None = None) -> Path:
 
 
 def _header() -> str:
-    return """# 🦕 ANKYLOSAURUS — Your Local LLM Setup Guide
+    return """# ANKYLOSAURUS -- Your Local LLM Setup Guide
 
 This guide was generated based on your specific installation.
 Run `python install.py status` to see your current setup."""

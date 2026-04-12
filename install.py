@@ -10,7 +10,7 @@ from splash import show_splash
 app = typer.Typer(
     name="ankylosaurus",
     no_args_is_help=True,
-    help="🦕 ANKYLOSAURUS — automated local LLM setup for any machine",
+    help="ANKYLOSAURUS -- automated local LLM setup for any machine",
 )
 console = Console()
 
@@ -79,7 +79,7 @@ def install():
 
     # 8. Generate guide
     guide_path = save_guide(state)
-    console.print(f"\n[bold green]📖 Guide saved to {guide_path}[/bold green]")
+    console.print(f"\n[bold green]Guide saved to {guide_path}[/bold green]")
     console.print("[bold]Done! Your local LLM stack is ready.[/bold]")
 
 

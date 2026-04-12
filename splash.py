@@ -1,62 +1,96 @@
-"""Animated ANKYLOSAURUS splash text using Rich."""
+"""Animated ankylosaur ASCII art splash screen using Rich."""
 
 from __future__ import annotations
 
 import time
 
-TITLE = "ANKYLOSAURUS"
 VERSION = "1.0"
-HEADER = f"🦕 ANKYLOSAURUS v{VERSION} — local-llm-setup"
+HEADER = "ANKYLOSAURUS v{} -- local-llm-setup".format(VERSION)
 
-# Gradient palette: orange-red → dark orange → gold → near-black
-PALETTE = [
-    (255, 69, 0),    # orange-red
-    (255, 120, 0),   # mid orange
-    (255, 140, 0),   # dark orange
-    (255, 180, 0),   # amber
-    (255, 200, 0),   # gold
-    (200, 150, 0),   # dim gold
-    (120, 80, 0),    # brown
-    (40, 40, 40),    # near-black
+# fmt: off
+BODY_LINES = [
+    "         .--~~--.",
+    "        /  @  @  \\",
+    "       |  (====)  |",
+    "        \\  \\__/  /",
+    "    .----`------'----.",
+    "   /  /#\\  /#\\  /#\\  \\",
+    "  |  [###][###][###]  |",
+    "  |   \\#/  \\#/  \\#/   |",
+    "   \\_                _/",
+    "     |  |      |  |",
+    "     |__|      |__|",
+]
+# fmt: on
+
+# Tail attaches to line 4 (the back ridge)
+TAIL_LINE = 4
+TAIL_FRAMES = [
+    "~~~<@",
+    " ~~~<@",
+    "  ~~~<@",
+    " ~~~<@",
 ]
 
+EYES_OPEN = "@  @"
+EYES_SHUT = "-  -"
 
-def _interpolate(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -> tuple[int, int, int]:
-    return (
-        int(c1[0] + (c2[0] - c1[0]) * t),
-        int(c1[1] + (c2[1] - c1[1]) * t),
-        int(c1[2] + (c2[2] - c1[2]) * t),
-    )
+# Color map
+COLORS = {
+    "#": "rgb(180,140,60)",
+    "@": "rgb(200,200,200)",
+    "~": "rgb(120,120,120)",
+    "<": "rgb(120,120,120)",
+    "/": "rgb(50,120,50)",
+    "\\": "rgb(50,120,50)",
+    "|": "rgb(50,120,50)",
+    ".": "rgb(50,120,50)",
+    "-": "rgb(50,120,50)",
+    "'": "rgb(50,120,50)",
+    "`": "rgb(50,120,50)",
+    "_": "rgb(50,120,50)",
+    "(": "rgb(70,140,70)",
+    ")": "rgb(70,140,70)",
+    "=": "rgb(70,140,70)",
+    "[": "rgb(160,120,40)",
+    "]": "rgb(160,120,40)",
+}
 
 
-def _color_at(position: float) -> tuple[int, int, int]:
-    """Get color from palette at a normalized position [0, 1)."""
-    n = len(PALETTE)
-    scaled = position * (n - 1)
-    idx = int(scaled)
-    frac = scaled - idx
-    if idx >= n - 1:
-        return PALETTE[-1]
-    return _interpolate(PALETTE[idx], PALETTE[idx + 1], frac)
+def _colorize_line(line: str) -> "Text":
+    from rich.text import Text
+    text = Text(line)
+    for i, ch in enumerate(line):
+        style = COLORS.get(ch)
+        if style:
+            text.stylize(style, i, i + 1)
+    return text
 
 
 def _build_frame(tick: int, total_ticks: int) -> "Text":
     from rich.text import Text
 
-    text = Text(TITLE, justify="center")
-    wave_speed = 2.0
-    offset = tick / total_ticks * wave_speed
+    tail_idx = tick % len(TAIL_FRAMES)
+    tail = TAIL_FRAMES[tail_idx]
 
-    for i in range(len(TITLE)):
-        pos = ((i / len(TITLE)) + offset) % 1.0
-        r, g, b = _color_at(pos)
-        text.stylize(f"bold rgb({r},{g},{b})", i, i + 1)
+    blink_start = int(total_ticks * 0.4)
+    blink_end = int(total_ticks * 0.5)
+    blink = blink_start <= tick < blink_end
 
-    return text
+    result = Text()
+    for i, line in enumerate(BODY_LINES):
+        if blink:
+            line = line.replace(EYES_OPEN, EYES_SHUT)
+        if i == TAIL_LINE:
+            line = line + tail
+        result.append(_colorize_line(line))
+        result.append("\n")
+
+    return result
 
 
 def show_splash(duration: float = 1.5) -> None:
-    """Display animated ANKYLOSAURUS text, then print header."""
+    """Display animated ankylosaur, then print header."""
     try:
         from rich.live import Live
         from rich.console import Console
@@ -66,13 +100,15 @@ def show_splash(duration: float = 1.5) -> None:
         total_frames = 24
         interval = duration / total_frames
 
-        with Live(console=console, refresh_per_second=20, transient=True) as live:
+        with Live(console=console, refresh_per_second=16, transient=True) as live:
             for tick in range(total_frames):
                 frame = _build_frame(tick, total_frames)
                 live.update(frame)
                 time.sleep(interval)
 
-        console.print(Text(HEADER, justify="center", style="bold"))
+        final = _build_frame(total_frames - 1, total_frames)
+        console.print(final)
+        console.print(Text(HEADER, justify="center", style="bold rgb(50,120,50)"))
         console.print()
 
     except ImportError:
@@ -80,7 +116,10 @@ def show_splash(duration: float = 1.5) -> None:
 
 
 def _fallback_splash() -> None:
-    print(f"\n  {TITLE}\n  {HEADER}\n")
+    print()
+    for line in BODY_LINES:
+        print(line)
+    print("\n  {}\n".format(HEADER))
 
 
 if __name__ == "__main__":

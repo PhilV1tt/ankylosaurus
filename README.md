@@ -1,8 +1,26 @@
-# 🦕 ANKYLOSAURUS
+# ANKYLOSAURUS
+
+```
+         .--~~--.
+        /  @  @  \
+       |  (====)  |
+        \  \__/  /
+    .----`------'----.~~~<@
+   /  /#\  /#\  /#\  \
+  |  [###][###][###]  |
+  |   \#/  \#/  \#/   |
+   \_                _/
+     |  |      |  |
+     |__|      |__|
+```
 
 **Automated local LLM setup CLI** - detect your hardware, pick the best runtime & models, install everything in one command.
 
 No cloud. No subscription. No data leaves your machine.
+
+Named after a friend nicknamed Ankyl.
+
+---
 
 ## What it does
 
@@ -47,13 +65,13 @@ python install.py install
 | NVIDIA | Windows | LM Studio | CUDA |
 | Fallback | Any | Ollama | CPU |
 
-RAM → quantization: ≥24 GB → Q6_K, 16-24 → Q4_K_M, 8-16 → Q3_K_M, <8 → Q2_K.
+RAM to quantization: >=24 GB -> Q6\_K, 16-24 -> Q4\_K\_M, 8-16 -> Q3\_K\_M, <8 -> Q2\_K.
 
 ## Project structure
 
 ```
 install.py              CLI entry point (Typer)
-splash.py               Animated splash text
+splash.py               Animated ankylosaur ASCII art
 modules/
   state.py              Install state persistence + auto-resume
   detect.py             Hardware detection
