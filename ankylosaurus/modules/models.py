@@ -197,7 +197,7 @@ def _live_chat_search(
         pipeline_tag="text-generation",
         sort="trending_score",
         limit=100,
-        expand=["safetensors"],
+        expand=["safetensors", "siblings"],
     )
 
     candidates = _filter_candidates(raw_models, decision, prefs)
@@ -237,7 +237,7 @@ def _live_embedding_search(
         pipeline_tag="sentence-similarity",
         sort="trending_score",
         limit=50,
-        expand=["safetensors"],
+        expand=["safetensors", "siblings"],
     )
 
     candidates: list[ModelCandidate] = []
@@ -319,10 +319,30 @@ def _estimate_size(model_info) -> float:
             return params * bpp / (1024 ** 3)
 
     if hasattr(model_info, "siblings") and model_info.siblings:
+        gguf_sizes = [
+            s.size for s in model_info.siblings
+            if s.size and hasattr(s, "rfilename") and s.rfilename.endswith(".gguf")
+        ]
+        if gguf_sizes:
+            return max(gguf_sizes) / (1024 ** 3)
         total = sum(s.size or 0 for s in model_info.siblings if s.size)
         if total > 0:
             return total / (1024 ** 3)
 
+    # Fallback: parse param count from model name
+    params_b = _parse_params_from_name(model_id)
+    if params_b > 0:
+        bpp = 0.55 if is_quantized else 2.0
+        return params_b * bpp
+    return 0.0
+
+
+def _parse_params_from_name(model_id: str) -> float:
+    """Extract parameter count in billions from model name."""
+    import re
+    match = re.search(r"(\d+\.?\d*)[_-]?b(?:\b|[^a-z])", model_id)
+    if match:
+        return float(match.group(1))
     return 0.0
 
 

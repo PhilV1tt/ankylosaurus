@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-12T12:16:10.676720+00:00",
+  "generated_at": "2026-04-12T12:43:20.140056+00:00",
   "tiers": {
     "8gb": {
       "mlx": [
@@ -15,6 +15,17 @@
           "score": 0.512
         },
         {
+          "repo_id": "deadbydawn101/gemma-4-E4B-Agentic-Opus-Reasoning-GeminiCLI-mlx-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.3009
+        },
+        {
           "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
           "downloads": 0,
           "likes": 0,
@@ -101,20 +112,120 @@
           "last_modified": "",
           "format": "mlx",
           "score": 0.2343
-        },
-        {
-          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
-          "downloads": 0,
-          "likes": 0,
-          "trending_score": 2,
-          "size_gb": 0.7,
-          "created_at": "",
-          "last_modified": "",
-          "format": "mlx",
-          "score": 0.2343
         }
       ],
-      "gguf": []
+      "gguf": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 162,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.512
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E2B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 19,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2456
+        },
+        {
+          "repo_id": "kai-os/Carnice-9b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 5.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        },
+        {
+          "repo_id": "khazarai/Qwen3-4B-Qwen3.6-plus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E4B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 15,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2381
+        },
+        {
+          "repo_id": "Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 11,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2307
+        },
+        {
+          "repo_id": "Jackrong/Qwen3.5-2B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 10,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2288
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 9,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2269
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-1.7B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 9,
+          "size_gb": 0.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2269
+        },
+        {
+          "repo_id": "Qwen/Qwen3-8B-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2251
+        }
+      ]
     },
     "16gb": {
       "mlx": [
@@ -130,6 +241,17 @@
           "score": 0.512
         },
         {
+          "repo_id": "deadbydawn101/gemma-4-E4B-Agentic-Opus-Reasoning-GeminiCLI-mlx-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.3009
+        },
+        {
           "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
           "downloads": 0,
           "likes": 0,
@@ -216,20 +338,120 @@
           "last_modified": "",
           "format": "mlx",
           "score": 0.2343
-        },
-        {
-          "repo_id": "Jackrong/MLX-Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit",
-          "downloads": 0,
-          "likes": 0,
-          "trending_score": 2,
-          "size_gb": 0.7,
-          "created_at": "",
-          "last_modified": "",
-          "format": "mlx",
-          "score": 0.2343
         }
       ],
-      "gguf": []
+      "gguf": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 162,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.512
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E2B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 19,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2456
+        },
+        {
+          "repo_id": "kai-os/Carnice-9b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 5.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        },
+        {
+          "repo_id": "khazarai/Qwen3-4B-Qwen3.6-plus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E4B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 15,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2381
+        },
+        {
+          "repo_id": "Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 11,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2307
+        },
+        {
+          "repo_id": "Jackrong/Qwen3.5-2B-Claude-4.6-Opus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 10,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2288
+        },
+        {
+          "repo_id": "unsloth/gpt-oss-20b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 9,
+          "size_gb": 11.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2269
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-4B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 9,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2269
+        },
+        {
+          "repo_id": "prism-ml/Bonsai-1.7B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 9,
+          "size_gb": 0.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2269
+        }
+      ]
     },
     "24gb": {
       "mlx": [
@@ -256,6 +478,17 @@
           "score": 0.3773
         },
         {
+          "repo_id": "deadbydawn101/gemma-4-E4B-Agentic-Opus-Reasoning-GeminiCLI-mlx-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.261
+        },
+        {
           "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
           "downloads": 0,
           "likes": 0,
@@ -322,29 +555,129 @@
           "score": 0.2304
         },
         {
-          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "repo_id": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-8bit",
           "downloads": 0,
           "likes": 0,
           "trending_score": 2,
-          "size_gb": 0.7,
-          "created_at": "",
-          "last_modified": "",
-          "format": "mlx",
-          "score": 0.2243
-        },
-        {
-          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
-          "downloads": 0,
-          "likes": 0,
-          "trending_score": 2,
-          "size_gb": 0.3,
+          "size_gb": 16.5,
           "created_at": "",
           "last_modified": "",
           "format": "mlx",
           "score": 0.2243
         }
       ],
-      "gguf": []
+      "gguf": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 162,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.512
+        },
+        {
+          "repo_id": "douyamv/Gemma-4-31B-JANG_4M-CRACK-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 72,
+          "size_gb": 17.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3443
+        },
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-gguf-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 62,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3257
+        },
+        {
+          "repo_id": "Jackrong/Gemopus-4-26B-A4B-it-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 42,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2884
+        },
+        {
+          "repo_id": "DJLougen/Harmonic-27B-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 36,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2772
+        },
+        {
+          "repo_id": "kai-os/Carnice-27b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 21,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2493
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-26B-A4B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 20,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2474
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E2B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 19,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2456
+        },
+        {
+          "repo_id": "kai-os/Carnice-9b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 5.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        },
+        {
+          "repo_id": "khazarai/Qwen3-4B-Qwen3.6-plus-Reasoning-Distilled-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        }
+      ]
     },
     "32gb": {
       "mlx": [
@@ -371,6 +704,17 @@
           "score": 0.3773
         },
         {
+          "repo_id": "deadbydawn101/gemma-4-E4B-Agentic-Opus-Reasoning-GeminiCLI-mlx-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.261
+        },
+        {
           "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
           "downloads": 0,
           "likes": 0,
@@ -437,29 +781,129 @@
           "score": 0.2304
         },
         {
-          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
+          "repo_id": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-8bit",
           "downloads": 0,
           "likes": 0,
           "trending_score": 2,
-          "size_gb": 0.7,
-          "created_at": "",
-          "last_modified": "",
-          "format": "mlx",
-          "score": 0.2243
-        },
-        {
-          "repo_id": "Jackrong/MLX-Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-4bit",
-          "downloads": 0,
-          "likes": 0,
-          "trending_score": 2,
-          "size_gb": 0.3,
+          "size_gb": 16.5,
           "created_at": "",
           "last_modified": "",
           "format": "mlx",
           "score": 0.2243
         }
       ],
-      "gguf": []
+      "gguf": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 162,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.512
+        },
+        {
+          "repo_id": "douyamv/Gemma-4-31B-JANG_4M-CRACK-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 72,
+          "size_gb": 17.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3443
+        },
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-gguf-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 62,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3257
+        },
+        {
+          "repo_id": "Jackrong/Gemopus-4-26B-A4B-it-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 42,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2884
+        },
+        {
+          "repo_id": "DJLougen/Harmonic-27B-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 36,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2772
+        },
+        {
+          "repo_id": "mudler/Qwen3.5-35B-A3B-APEX-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 25,
+          "size_gb": 19.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2567
+        },
+        {
+          "repo_id": "kai-os/Carnice-27b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 21,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2493
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-26B-A4B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 20,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2474
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E2B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 19,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2456
+        },
+        {
+          "repo_id": "kai-os/Carnice-9b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 5.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        }
+      ]
     },
     "48gb": {
       "mlx": [
@@ -484,6 +928,17 @@
           "last_modified": "",
           "format": "mlx",
           "score": 0.3773
+        },
+        {
+          "repo_id": "deadbydawn101/gemma-4-E4B-Agentic-Opus-Reasoning-GeminiCLI-mlx-4bit",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 8,
+          "size_gb": 2.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "mlx",
+          "score": 0.261
         },
         {
           "repo_id": "mlx-community/Qwen3.5-9B-OptiQ-4bit",
@@ -561,20 +1016,120 @@
           "last_modified": "",
           "format": "mlx",
           "score": 0.2304
-        },
-        {
-          "repo_id": "lukey03/Qwen3.5-9B-abliterated-MLX-4bit",
-          "downloads": 0,
-          "likes": 0,
-          "trending_score": 2,
-          "size_gb": 0.7,
-          "created_at": "",
-          "last_modified": "",
-          "format": "mlx",
-          "score": 0.2243
         }
       ],
-      "gguf": []
+      "gguf": [
+        {
+          "repo_id": "prism-ml/Bonsai-8B-gguf",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 162,
+          "size_gb": 4.4,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.512
+        },
+        {
+          "repo_id": "douyamv/Gemma-4-31B-JANG_4M-CRACK-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 72,
+          "size_gb": 17.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3443
+        },
+        {
+          "repo_id": "Jiunsong/supergemma4-26b-uncensored-gguf-v2",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 62,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.3257
+        },
+        {
+          "repo_id": "Jackrong/Gemopus-4-26B-A4B-it-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 42,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2884
+        },
+        {
+          "repo_id": "DJLougen/Harmonic-27B-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 36,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2772
+        },
+        {
+          "repo_id": "mudler/Qwen3.5-35B-A3B-APEX-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 25,
+          "size_gb": 19.2,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2567
+        },
+        {
+          "repo_id": "kai-os/Carnice-27b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 21,
+          "size_gb": 14.9,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2493
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-26B-A4B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 20,
+          "size_gb": 14.3,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2474
+        },
+        {
+          "repo_id": "TrevorJS/gemma-4-E2B-it-uncensored-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 19,
+          "size_gb": 1.1,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2456
+        },
+        {
+          "repo_id": "kai-os/Carnice-9b-GGUF",
+          "downloads": 0,
+          "likes": 0,
+          "trending_score": 18,
+          "size_gb": 5.0,
+          "created_at": "",
+          "last_modified": "",
+          "format": "gguf",
+          "score": 0.2437
+        }
+      ]
     }
   },
   "embeddings": [
