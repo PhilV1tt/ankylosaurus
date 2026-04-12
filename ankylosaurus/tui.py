@@ -449,10 +449,10 @@ class AnkylosaurusApp(App):
     def compose(self) -> ComposeResult:
         yield BrandHeader(id="brand-header")
         with Horizontal(id="body"):
-            sidebar = ListView(id="sidebar")
-            for key, icon, title in MENU_ITEMS:
-                sidebar.append(SidebarItem(key, icon, title, is_sep=(key == "---")))
-            yield sidebar
+            yield ListView(
+                *[SidebarItem(key, icon, title, is_sep=(key == "---")) for key, icon, title in MENU_ITEMS],
+                id="sidebar",
+            )
             yield ScrollableContainer(id="main")
         yield Footer()
 
