@@ -106,8 +106,8 @@ class BrandHeader(Static):
     runtime_alive = reactive(False)
     ram_available = reactive(0.0)
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._runtime_name = ""
 
     def on_mount(self) -> None:
