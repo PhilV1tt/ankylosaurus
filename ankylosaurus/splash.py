@@ -8,16 +8,16 @@ from . import __version__
 
 HEADER = "ANKYLOSAURUS v{} -- local-llm-setup".format(__version__)
 
-# Gradient palette: dark green -> green -> yellow/brown -> dark
+# Gradient palette: dark red -> red -> orange -> yellow -> black
 PALETTE = [
-    (30, 80, 30),
-    (50, 120, 50),
-    (70, 140, 70),
-    (120, 140, 50),
-    (180, 140, 60),
-    (160, 120, 40),
-    (100, 80, 30),
-    (40, 40, 40),
+    (180, 30, 20),
+    (220, 50, 20),
+    (230, 100, 20),
+    (240, 140, 20),
+    (250, 180, 30),
+    (255, 210, 40),
+    (200, 140, 20),
+    (40, 20, 10),
 ]
 
 
@@ -72,7 +72,7 @@ def show_splash(duration: float = 1.5) -> None:
                 live.update(frame)
                 time.sleep(interval)
 
-        console.print(Text(HEADER, justify="center", style="bold rgb(50,120,50)"))
+        console.print(Text(HEADER, justify="center", style="bold rgb(230,100,20)"))
         console.print()
 
     except ImportError:

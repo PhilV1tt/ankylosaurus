@@ -63,11 +63,11 @@ class StatusPanel(Static):
     def compose(self) -> ComposeResult:
         info = _load_status()
         if not info:
-            yield Label("[yellow]Aucune installation.[/yellow] Lance [bold]Installer[/bold] pour commencer.", id="status-empty")
+            yield Label("[#e66414]Aucune installation.[/#e66414] Lance [bold]Installer[/bold] pour commencer.", id="status-empty")
         else:
             lines = []
             for key, val in info.items():
-                lines.append(f"[bold]{key.capitalize():12s}[/bold] {val}")
+                lines.append(f"[bold #ffd028]{key.capitalize():12s}[/bold #ffd028] [#e66414]{val}[/#e66414]")
             yield Label("\n".join(lines), id="status-info")
 
 
@@ -114,13 +114,18 @@ class AnkylosaurusApp(App):
     TITLE = "ANKYLOSAURUS"
     CSS = """
     Screen {
-        background: $surface;
+        background: #111;
+    }
+
+    Header {
+        background: #1a0a00;
+        color: #e66414;
     }
 
     #logo {
         width: 100%;
         content-align: center middle;
-        color: $success;
+        color: #e66414;
         text-style: bold;
         margin-top: 1;
     }
@@ -128,7 +133,7 @@ class AnkylosaurusApp(App):
     #subtitle {
         width: 100%;
         text-align: center;
-        color: $text-muted;
+        color: #a06020;
         margin-bottom: 1;
     }
 
@@ -136,7 +141,7 @@ class AnkylosaurusApp(App):
         width: 60;
         margin: 0 auto;
         padding: 1 2;
-        border: round $primary;
+        border: round #c04010;
         margin-bottom: 1;
     }
 
@@ -149,20 +154,24 @@ class AnkylosaurusApp(App):
         margin: 0 auto;
         height: auto;
         max-height: 16;
-        border: round $primary;
+        border: round #c04010;
         padding: 0 1;
+        background: #1a0a00;
     }
 
     #menu > ListItem {
         padding: 0 2;
+        color: #ffd028;
     }
 
     #menu > ListItem.--highlight {
-        background: $primary 30%;
+        background: #c04010 40%;
+        color: #ffe060;
     }
 
     Footer {
-        background: $primary 15%;
+        background: #1a0a00;
+        color: #e66414;
     }
     """
 
@@ -217,11 +226,11 @@ class AnkylosaurusApp(App):
         panel.remove_children()
         info = _load_status()
         if not info:
-            panel.mount(Label("[yellow]Aucune installation.[/yellow] Lance [bold]Installer[/bold] pour commencer.", id="status-empty"))
+            panel.mount(Label("[#e66414]Aucune installation.[/#e66414] Lance [bold]Installer[/bold] pour commencer.", id="status-empty"))
         else:
             lines = []
             for key, val in info.items():
-                lines.append(f"[bold]{key.capitalize():12s}[/bold] {val}")
+                lines.append(f"[bold #ffd028]{key.capitalize():12s}[/bold #ffd028] [#e66414]{val}[/#e66414]")
             panel.mount(Label("\n".join(lines), id="status-info"))
 
         # Rebuild menu (options may change after install/uninstall)
