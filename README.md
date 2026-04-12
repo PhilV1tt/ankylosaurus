@@ -59,6 +59,7 @@ ankylosaurus install
 ```
 ankylosaurus install          Full interactive setup
 ankyl install                 Same — short alias
+ankylo install                Same — short alias
 
 ankylosaurus status           Dashboard: installed components, running services
 ankylosaurus check            Check for updates and trending models
