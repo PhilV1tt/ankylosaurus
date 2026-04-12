@@ -41,11 +41,17 @@ def run_install(
             console.print(f"  [green]✓ {label}[/green]")
         except Exception as e:
             console.print(f"  [red]✗ {label}: {e}[/red]")
-            console.print("[yellow]You can re-run 'ankylosaurus install' to resume.[/yellow]")
-            return state
+            if step_id in CRITICAL_STEPS:
+                console.print("[yellow]You can re-run 'ankylosaurus install' to resume.[/yellow]")
+                return state
+            console.print("  [dim]Skipping — not critical.[/dim]")
+            state.mark_step(step_id)  # mark as done to avoid retry loop
 
     console.print("\n[bold green]✓ Installation complete![/bold green]")
     return state
+
+
+CRITICAL_STEPS = {"runtime_installed", "models_downloaded"}
 
 
 def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
@@ -145,14 +151,16 @@ def _download_models(profile, decision, state, prefs, console):
         # Fallback: huggingface_hub download
         try:
             from huggingface_hub import snapshot_download
-            snapshot_download(
-                repo_id,
-                local_dir_use_symlinks=False,
-            )
+            snapshot_download(repo_id)
             console.print(f"  [green]Downloaded {repo_id}[/green]")
         except Exception as e:
-            console.print(f"  [yellow]Download failed for {repo_id}: {e}[/yellow]")
-            console.print(f"  [dim]You can download manually: hf download {repo_id}[/dim]")
+            err_str = str(e)
+            if "restricted" in err_str or "gated" in err_str or "401" in err_str:
+                console.print(f"  [yellow]{repo_id} requires HF authentication.[/yellow]")
+                console.print("  [dim]Run: huggingface-cli login, then retry.[/dim]")
+            else:
+                console.print(f"  [yellow]Download failed for {repo_id}: {e}[/yellow]")
+            console.print(f"  [dim]Manual: huggingface-cli download {repo_id}[/dim]")
 
 
 def _install_llm_cli(profile, decision, state, prefs, console):
@@ -168,13 +176,28 @@ def _install_llm_cli(profile, decision, state, prefs, console):
 
 
 def _install_fabric(profile, decision, state, prefs, console):
-    if shutil.which("fabric-ai"):
-        console.print("  [dim]fabric-ai already installed.[/dim]")
+    if shutil.which("fabric-ai") or shutil.which("fabric"):
+        console.print("  [dim]fabric already installed.[/dim]")
         state.tools["fabric"] = True
         return
 
-    _run_cmd(["pip3", "install", "fabric-ai"], console)
-    state.tools["fabric"] = True
+    # Try pip first, fall back to pipx
+    result = subprocess.run(
+        ["pip3", "install", "fabric-ai"], capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        state.tools["fabric"] = True
+        return
+
+    if shutil.which("pipx"):
+        result = subprocess.run(
+            ["pipx", "install", "fabric-ai"], capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            state.tools["fabric"] = True
+            return
+
+    raise RuntimeError("fabric-ai not available via pip or pipx")
 
 
 def _install_msty(profile, decision, state, prefs, console):
