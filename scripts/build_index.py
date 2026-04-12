@@ -97,7 +97,7 @@ def _fetch_and_score(
         pipeline_tag=pipeline,
         sort="trending_score",
         limit=150,
-        expand=["safetensors", "siblings"],
+        expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
     candidates = []

@@ -169,13 +169,20 @@ def find_chat_models(
     # Try index first
     index = _load_index()
     if index:
-        tier = _ram_to_tier(profile.ram_total_gb)
+        # Use VRAM for dedicated GPUs, RAM for unified memory
+        effective_mem = profile.gpu_vram_gb if profile.gpu_vram_gb > 0 and not profile.ram_unified else profile.ram_total_gb
+        tier = _ram_to_tier(effective_mem)
         fmt = "mlx" if decision.backend == "mlx" else "gguf"
         entries = index.get("tiers", {}).get(tier, {}).get(fmt, [])
         if entries:
             candidates = _index_to_candidates(entries)
-            # Filter by user disk budget
-            candidates = [c for c in candidates if c.size_gb <= prefs.disk_budget_gb * 0.6]
+            # Filter by size: respect both disk budget and max model params
+            max_size = decision.max_model_params_b * 0.75
+            candidates = [
+                c for c in candidates
+                if c.size_gb <= prefs.disk_budget_gb * 0.6
+                and (c.size_gb <= max_size or max_size <= 0)
+            ]
             return candidates[:limit]
 
     # Fallback: live search
@@ -197,7 +204,7 @@ def _live_chat_search(
         pipeline_tag="text-generation",
         sort="trending_score",
         limit=100,
-        expand=["safetensors", "siblings"],
+        expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
     candidates = _filter_candidates(raw_models, decision, prefs)
@@ -237,7 +244,7 @@ def _live_embedding_search(
         pipeline_tag="sentence-similarity",
         sort="trending_score",
         limit=50,
-        expand=["safetensors", "siblings"],
+        expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
     candidates: list[ModelCandidate] = []
