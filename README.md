@@ -4,7 +4,7 @@
 
 No cloud. No subscription. No data leaves your machine.
 
-Named after a friend nicknamed Ankyl.
+Named after a friend named Ankyl.
 
 ---
 
