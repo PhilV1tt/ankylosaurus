@@ -21,11 +21,26 @@ class UserPreferences:
             self.personas = []
 
 
-def run_questionnaire(profile: HardwareProfile) -> UserPreferences:
+def run_questionnaire(profile: HardwareProfile, yes_mode: bool = False) -> UserPreferences:
     from rich.console import Console
     from rich.prompt import Prompt, IntPrompt, Confirm
 
     console = Console()
+
+    if yes_mode:
+        max_disk = min(int(profile.disk_free_gb * 0.5), 100)
+        from .personas import BUILTIN_PERSONAS
+        console.print("[dim]Non-interactive mode: using defaults.[/dim]")
+        return UserPreferences(
+            usage="general",
+            features=["chat", "rag"],
+            disk_budget_gb=min(30, max_disk),
+            want_gui=True,
+            language="multi",
+            battery_mode=False,
+            personas=list(BUILTIN_PERSONAS.keys()),
+        )
+
     console.print("\n[bold cyan]Configuration[/bold cyan]\n")
 
     usage = Prompt.ask(

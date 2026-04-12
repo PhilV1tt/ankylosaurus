@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import signal
+import sys
 from typing import Optional
 
 import typer
@@ -10,12 +12,29 @@ from rich.console import Console
 from . import __version__
 from .splash import show_splash
 
+# Global non-interactive flag
+_yes_mode = False
+
 
 def _version_callback(value: bool) -> None:
     if value:
         print("ankylosaurus {}".format(__version__))
         raise typer.Exit()
 
+
+def _yes_callback(value: bool) -> None:
+    global _yes_mode
+    if value:
+        _yes_mode = True
+
+
+def _sigint_handler(sig, frame):
+    console = Console()
+    console.print("\n[yellow]Interrupted. Re-run 'ankylosaurus install' to resume.[/yellow]")
+    sys.exit(130)
+
+
+signal.signal(signal.SIGINT, _sigint_handler)
 
 app = typer.Typer(
     name="ankylosaurus",
@@ -29,6 +48,10 @@ def main(
     version: Optional[bool] = typer.Option(
         None, "--version", "-V", callback=_version_callback, is_eager=True,
         help="Show version and exit.",
+    ),
+    yes: Optional[bool] = typer.Option(
+        None, "--yes", "-y", callback=_yes_callback, is_eager=True,
+        help="Non-interactive mode: accept all defaults.",
     ),
 ) -> None:
     pass
@@ -47,7 +70,6 @@ def install():
     from .modules.models import find_chat_models, find_embedding_models, display_candidates
     from .modules.installer import run_install
     from .modules.extensions import show_extension_menu
-    from .modules.personas import install_builtin_personas
     from .modules.guide import save_guide
     from .modules.state import load_state, save_state
 
@@ -67,7 +89,7 @@ def install():
     state.runtime = decision.runtime
 
     # 3. Questionnaire
-    prefs = run_questionnaire(profile)
+    prefs = run_questionnaire(profile, yes_mode=_yes_mode)
     state.preferences = {
         "usage": prefs.usage, "features": prefs.features,
         "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
@@ -92,14 +114,10 @@ def install():
     # 5. Install components
     run_install(profile, decision, state, prefs, console)
 
-    # 6. Personas
-    install_builtin_personas(state)
-    save_state(state)
-
-    # 7. Extensions (optional)
+    # 6. Extensions (optional)
     show_extension_menu(state, console)
 
-    # 8. Generate guide
+    # 7. Generate guide
     guide_path = save_guide(state)
     console.print(f"\n[bold green]Guide saved to {guide_path}[/bold green]")
     console.print("[bold]Done! Your local LLM stack is ready.[/bold]")
