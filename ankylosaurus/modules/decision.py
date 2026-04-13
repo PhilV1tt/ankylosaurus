@@ -8,12 +8,12 @@ from .detect import HardwareProfile
 
 @dataclass
 class RuntimeDecision:
-    runtime: str          # "lm-studio" | "ollama"
+    runtime: str          # "ollama"
     backend: str          # "mlx" | "llama.cpp-metal" | "cuda" | "rocm" | "cpu"
     quantization: str     # "Q6_K" | "Q4_K_M" | "Q3_K_M" | "Q2_K"
     max_model_params_b: float
     max_context_length: int
-    ui: str = "terminal"  # "open-webui" | "lm-studio" | "ollama-cli" | "terminal"
+    ui: str = "terminal"  # "open-webui" | "ollama-cli" | "terminal"
 
 
 def decide_runtime(profile: HardwareProfile, docker_info: dict | None = None) -> RuntimeDecision:
@@ -35,12 +35,10 @@ def decide_runtime(profile: HardwareProfile, docker_info: dict | None = None) ->
 
 
 def _pick_ui(profile: HardwareProfile, runtime: str, docker_info: dict | None = None) -> str:
-    """Cascading UI fallback: Open WebUI → LM Studio → Ollama CLI → terminal."""
+    """Cascading UI fallback: Open WebUI → Ollama CLI → terminal."""
     docker = docker_info or {}
     if docker.get("installed") and docker.get("running") and profile.ram_total_gb >= 16:
         return "open-webui"
-    if profile.os_type in ("macOS", "Windows"):
-        return "lm-studio"
     if runtime == "ollama":
         return "ollama-cli"
     return "terminal"
@@ -51,7 +49,7 @@ def _pick_runtime_backend(profile: HardwareProfile) -> tuple[str, str]:
     os = profile.os_type
 
     if gpu == "apple_silicon" and os == "macOS":
-        return "lm-studio", "mlx"
+        return "ollama", "mlx"
     if gpu == "none" and os == "macOS":
         return "ollama", "llama.cpp-metal"
     if gpu == "nvidia" and os == "Linux":
@@ -59,7 +57,7 @@ def _pick_runtime_backend(profile: HardwareProfile) -> tuple[str, str]:
     if gpu == "amd" and os == "Linux":
         return "ollama", "rocm"
     if gpu == "nvidia" and os == "Windows":
-        return "lm-studio", "cuda"
+        return "ollama", "cuda"
     return "ollama", "cpu"
 
 

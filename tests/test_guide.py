@@ -20,14 +20,6 @@ def test_guide_ollama_section(tmp_path):
     assert "ollama serve" in content
 
 
-def test_guide_lmstudio_section(tmp_path):
-    state = InstallState(runtime="lm-studio")
-    path = save_guide(state, output=tmp_path / "GUIDE.md")
-    content = path.read_text()
-    assert "LM Studio" in content
-    assert "lms" in content
-
-
 def test_guide_models_section(tmp_path):
     state = InstallState(models=[{"role": "chat", "repo_id": "test/model", "size_gb": 4.2}])
     path = save_guide(state, output=tmp_path / "GUIDE.md")

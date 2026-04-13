@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import bisect
+
 
 
 def extract_text(pdf_path: str) -> list[dict]:
@@ -43,14 +45,17 @@ def chunk_text(
         page_num = page_info["page"]
         start = 0
 
+        # Precompute paragraph break positions for O(n + k log n) chunking
+        breaks = [i for i in range(len(text) - 1) if text[i:i+2] == "\n\n"]
+
         while start < len(text):
             end = start + chunk_size
 
-            # Try to break at paragraph boundary
-            if end < len(text):
-                newline_pos = text.rfind("\n\n", start, end)
-                if newline_pos > start + chunk_size // 2:
-                    end = newline_pos + 2
+            # Try to break at paragraph boundary via binary search
+            if end < len(text) and breaks:
+                idx = bisect.bisect_right(breaks, end) - 1
+                if idx >= 0 and breaks[idx] > start + chunk_size // 2:
+                    end = breaks[idx] + 2
 
             chunk_text_str = text[start:end].strip()
             if chunk_text_str:

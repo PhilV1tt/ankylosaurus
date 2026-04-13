@@ -8,12 +8,12 @@ def test_roundtrip(tmp_path, monkeypatch):
     test_file = tmp_path / "state.json"
     monkeypatch.setattr("ankylosaurus.modules.state.STATE_FILE", test_file)
 
-    state = InstallState(runtime="lm-studio", runtime_version="0.4.10")
+    state = InstallState(runtime="ollama", runtime_version="0.5.0")
     state.mark_step("runtime_installed")
     save_state(state)
 
     loaded = load_state()
-    assert loaded.runtime == "lm-studio"
+    assert loaded.runtime == "ollama"
     assert loaded.is_done("runtime_installed")
     assert not loaded.is_done("models_downloaded")
 

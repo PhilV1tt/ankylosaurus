@@ -17,7 +17,7 @@ class UserPreferences:
     want_gui: bool
     language: str           # "en" | "fr" | "multi"
     battery_mode: bool
-    gui_mode: str = ""      # "open-webui" | "lm-studio" | "ollama-cli" | "terminal"
+    gui_mode: str = ""      # "open-webui" | "ollama-cli" | "terminal"
     personas: list[str] = field(default_factory=list)
     webui_name: str = ""
     webui_email: str = ""
@@ -49,7 +49,7 @@ def run_questionnaire(
         from .personas import BUILTIN_PERSONAS
         console.print("[dim]Non-interactive mode: using defaults.[/dim]")
         ui_mode = decision.ui if decision else "open-webui"
-        want_gui = ui_mode in ("open-webui", "lm-studio")
+        want_gui = ui_mode == "open-webui"
         webui_name = "admin" if ui_mode == "open-webui" else ""
         webui_email = "admin@localhost" if ui_mode == "open-webui" else ""
         webui_password = secrets.token_urlsafe(16) if ui_mode == "open-webui" else ""
@@ -115,12 +115,10 @@ def run_questionnaire(
     # Smart GUI recommendation based on hardware detection
     if decision and decision.ui == "open-webui":
         gui_hint = "Docker detected — Open WebUI recommended"
-    elif decision and decision.ui == "lm-studio":
-        gui_hint = "LM Studio GUI recommended"
     else:
         gui_hint = "Terminal mode (Ollama CLI)"
 
-    gui_default = decision.ui in ("open-webui", "lm-studio") if decision else True
+    gui_default = decision.ui == "open-webui" if decision else True
     want_gui = _ask(questionary.confirm(
         f"Install GUI? ({gui_hint})",
         default=gui_default,

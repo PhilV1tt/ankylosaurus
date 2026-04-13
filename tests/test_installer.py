@@ -53,15 +53,6 @@ def test_build_steps_open_webui_mode():
     ids = [s[0] for s in steps]
     assert "openwebui_installed" in ids
     assert "openwebui_configured" in ids
-    assert "lmstudio_gui_noted" not in ids
-
-
-def test_build_steps_lm_studio_mode():
-    prefs = _make_prefs(want_gui=True, gui_mode="lm-studio")
-    steps = _build_steps(prefs)
-    ids = [s[0] for s in steps]
-    assert "lmstudio_gui_noted" in ids
-    assert "openwebui_installed" not in ids
 
 
 def test_build_steps_backward_compat_want_gui_no_gui_mode():

@@ -18,11 +18,7 @@ def run_update(state: InstallState, console: Console) -> None:
     updated = False
 
     # Runtime
-    if state.runtime == "lm-studio" and shutil.which("brew"):
-        if Confirm.ask("Update LM Studio?", default=True):
-            _brew_upgrade("lm-studio", console, cask=True)
-            updated = True
-    elif state.runtime == "ollama" and shutil.which("ollama"):
+    if state.runtime == "ollama" and shutil.which("ollama"):
         if Confirm.ask("Update Ollama?", default=True):
             if shutil.which("brew"):
                 _brew_upgrade("ollama", console)

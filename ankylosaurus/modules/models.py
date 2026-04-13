@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import heapq
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -39,6 +41,8 @@ W_RECENCY = 0.10
 
 FRESHNESS_HALFLIFE_DAYS = 90
 RECENCY_THRESHOLD_DAYS = 14
+
+_PARAM_RE = re.compile(r"(\d+\.?\d*)[_-]?b(?:\b|[^a-z])")
 
 
 def _compute_scores(candidates: list[ModelCandidate]) -> None:
@@ -150,7 +154,9 @@ def _load_index() -> dict | None:
             if age > INDEX_MAX_AGE_DAYS:
                 return None
         return data
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug("Failed to load model index: %s", e)
         return None
 
 
@@ -195,8 +201,9 @@ def find_chat_models(
             max_size_gb = effective_mem * 0.75
             candidates = [
                 c for c in candidates
-                if c.size_gb <= prefs.disk_budget_gb * 0.6
-                and (c.size_gb <= max_size_gb or max_size_gb <= 0)
+                if c.size_gb > 0
+                and c.size_gb <= prefs.disk_budget_gb * 0.6
+                and (c.size_gb <= max_size_gb if max_size_gb > 0 else True)
             ]
             return candidates[:limit]
 
@@ -219,14 +226,13 @@ def _live_chat_search(
         search=search_term,
         pipeline_tag="text-generation",
         sort="trending_score",
-        limit=100,
+        limit=max(limit * 4, 20),
         expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
     candidates = _filter_candidates(raw_models, decision, prefs, max_size_gb)
     _compute_scores(candidates)
-    candidates.sort(key=lambda c: c.score, reverse=True)
-    return candidates[:limit]
+    return heapq.nlargest(limit, candidates, key=lambda c: c.score)
 
 
 def find_embedding_models(
@@ -259,7 +265,7 @@ def _live_embedding_search(
         search=search_term,
         pipeline_tag="sentence-similarity",
         sort="trending_score",
-        limit=50,
+        limit=max(limit * 4, 20),
         expand=["safetensors", "siblings", "downloads", "likes", "createdAt", "lastModified", "trendingScore"],
     )
 
@@ -283,8 +289,7 @@ def _live_embedding_search(
         ))
 
     _compute_scores(candidates)
-    candidates.sort(key=lambda c: c.score, reverse=True)
-    return candidates[:limit]
+    return heapq.nlargest(limit, candidates, key=lambda c: c.score)
 
 
 def _filter_candidates(
@@ -298,9 +303,9 @@ def _filter_candidates(
 
     for m in raw_models:
         size_gb = _estimate_size(m)
-        if size_gb > prefs.disk_budget_gb * 0.6:
+        if size_gb <= 0 or size_gb > prefs.disk_budget_gb * 0.6:
             continue
-        if size_gb > max_size_gb and max_size_gb > 0:
+        if max_size_gb > 0 and size_gb > max_size_gb:
             continue
 
         model_id = m.id or ""
@@ -342,13 +347,16 @@ def _estimate_size(model_info) -> float:
             return params * bpp / (1024 ** 3)
 
     if hasattr(model_info, "siblings") and model_info.siblings:
-        gguf_sizes = [
-            s.size for s in model_info.siblings
-            if s.size and hasattr(s, "rfilename") and s.rfilename.endswith(".gguf")
-        ]
-        if gguf_sizes:
-            return max(gguf_sizes) / (1024 ** 3)
-        total = sum(s.size or 0 for s in model_info.siblings if s.size)
+        max_gguf = 0
+        total = 0
+        for s in model_info.siblings:
+            size = s.size or 0
+            total += size
+            if size and hasattr(s, "rfilename") and s.rfilename.endswith(".gguf"):
+                if size > max_gguf:
+                    max_gguf = size
+        if max_gguf:
+            return max_gguf / (1024 ** 3)
         if total > 0:
             return total / (1024 ** 3)
 
@@ -362,8 +370,7 @@ def _estimate_size(model_info) -> float:
 
 def _parse_params_from_name(model_id: str) -> float:
     """Extract parameter count in billions from model name."""
-    import re
-    match = re.search(r"(\d+\.?\d*)[_-]?b(?:\b|[^a-z])", model_id)
+    match = _PARAM_RE.search(model_id)
     if match:
         return float(match.group(1))
     return 0.0
@@ -407,5 +414,10 @@ def display_candidates(candidates: list[ModelCandidate], title: str = "Models") 
         )
 
     console.print(table)
-    choice = IntPrompt.ask(f"Select {title.lower()} (1-{len(candidates)}, 0 to skip)", default=1)
-    return choice - 1
+    while True:
+        choice = IntPrompt.ask(f"Select {title.lower()} (1-{len(candidates)}, 0 to skip)", default=1)
+        if choice == 0:
+            return -1
+        if 1 <= choice <= len(candidates):
+            return choice - 1
+        console.print(f"[yellow]Please enter a number between 0 and {len(candidates)}.[/yellow]")

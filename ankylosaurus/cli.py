@@ -30,7 +30,8 @@ def _yes_callback(value: bool) -> None:
 
 def _sigint_handler(sig, frame):
     console = Console()
-    console.print("\n[yellow]Interrupted. Re-run 'ankylosaurus install' to resume.[/yellow]")
+    console.print("\n[yellow]Interrupted. State saved — re-run 'ankylosaurus install' to resume.[/yellow]")
+    console.print("[dim]Partial downloads may need cleanup in ~/.cache/huggingface/[/dim]")
     sys.exit(130)
 
 
@@ -71,7 +72,9 @@ def tui():
 
 
 @app.command()
-def install():
+def install(
+    fresh: bool = typer.Option(False, "--fresh", help="Force full re-install from scratch."),
+):
     """Full interactive installation: detect hardware, pick runtime & models, install everything."""
     show_splash()
     from .modules.detect import detect_hardware, detect_docker, display_hardware
@@ -81,9 +84,18 @@ def install():
     from .modules.installer import run_install
     from .modules.extensions import show_extension_menu
     from .modules.guide import save_guide
-    from .modules.state import load_state, save_state
+    from .modules.state import load_state, save_state, state_exists
 
     state = load_state()
+
+    # If already fully installed, skip setup unless --fresh
+    if not fresh and state_exists() and state.steps_completed and state.models and state.runtime:
+        console.print("[bold green]Already installed.[/bold green]")
+        console.print(f"  [dim]Runtime: {state.runtime}  |  Models: {len(state.models)}  |  Steps: {len(state.steps_completed)}[/dim]")
+        console.print("\n  Use [bold]--fresh[/bold] to re-run the full setup.")
+        console.print("  Use [bold]ankylosaurus update[/bold] to update components.")
+        console.print("  Use [bold]ankylosaurus check[/bold] to check for new models.\n")
+        raise typer.Exit()
 
     # 1. Detect hardware
     profile = detect_hardware()
@@ -301,7 +313,7 @@ def rag(
 
 @app.command()
 def personas(
-    action: str = typer.Argument("list", help="list | create | edit | delete"),
+    action: str = typer.Argument("list", help="list | create | edit | delete | export"),
     name: str = typer.Argument(None, help="Persona name (for edit/delete)"),
 ):
     """Manage LLM personas (list, create, edit, delete)."""
@@ -329,8 +341,14 @@ def personas(
             console.print("[red]Usage: personas delete <name>[/red]")
             raise typer.Exit(1)
         delete_persona(name, state, console)
+    elif action == "export":
+        if not name:
+            console.print("[red]Usage: personas export <name>[/red]")
+            raise typer.Exit(1)
+        from .modules.personas import export_persona
+        export_persona(name, console)
     else:
-        console.print(f"[red]Unknown action: {action}. Use list|create|edit|delete[/red]")
+        console.print(f"[red]Unknown action: {action}. Use list|create|edit|delete|export[/red]")
 
 
 if __name__ == "__main__":

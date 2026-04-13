@@ -79,15 +79,6 @@ def _quickstart_section(state: InstallState) -> str:
             lines.append("# Interactive mode")
             lines.append("ankylosaurus run")
             lines.append("```")
-        elif state.runtime == "lm-studio":
-            lines.append("```bash")
-            lines.append("# Start the server")
-            lines.append("lms server start")
-            lines.append("")
-            lines.append("# Chat via ankylosaurus")
-            lines.append('ankylosaurus run "hello"')
-            lines.append("ankylosaurus run  # interactive mode")
-            lines.append("```")
         else:
             lines.append('```bash\nankylosaurus run "hello"\n```')
     else:
@@ -97,16 +88,7 @@ def _quickstart_section(state: InstallState) -> str:
 
 
 def _runtime_section(state: InstallState) -> str:
-    rt = state.runtime
-    if rt == "lm-studio":
-        return """## Runtime: LM Studio
-
-- **Start server**: Open LM Studio app or `lms server start`
-- **API endpoint**: `http://localhost:1234/v1`
-- **Load model**: Select model in LM Studio UI or `lms load <model>`
-- **Check loaded**: `lms ps`"""
-    else:
-        return """## Runtime: Ollama
+    return """## Runtime: Ollama
 
 - **Start server**: `ollama serve` (or it may auto-start)
 - **API endpoint**: `http://localhost:11434`
@@ -157,7 +139,7 @@ def _anythingllm_section() -> str:
     return """## AnythingLLM
 
 - **Open**: Launch AnythingLLM from Applications
-- **Setup**: Connect to LM Studio (localhost:1234) as LLM provider
+- **Setup**: Connect to Ollama (localhost:11434) as LLM provider
 - **Embedding**: Configure embedding model in Settings
 - **RAG**: Create workspaces, upload documents, chat with context"""
 

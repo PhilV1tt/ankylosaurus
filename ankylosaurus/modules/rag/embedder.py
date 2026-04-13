@@ -43,15 +43,13 @@ class Embedder:
 
         self._model = mod.JinaEmbeddingModel(config)
 
-        # Prefer quantized weights
-        for weights_file in ["model-4bit.safetensors", "model-8bit.safetensors", "model.safetensors"]:
-            path = model_dir / weights_file
-            if path.exists():
-                weights = mx.load(str(path))
-                self._model.load_weights(list(weights.items()))
-                break
-        else:
+        # Prefer quantized weights — find first existing file
+        candidates = ["model-4bit.safetensors", "model-8bit.safetensors", "model.safetensors"]
+        weights_path = next((model_dir / f for f in candidates if (model_dir / f).exists()), None)
+        if weights_path is None:
             raise FileNotFoundError(f"No safetensors found in {model_dir}")
+        weights = mx.load(str(weights_path))
+        self._model.load_weights(list(weights.items()))
 
         from tokenizers import Tokenizer
         self._tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
@@ -68,10 +66,10 @@ class Embedder:
             result = self._model.encode(batch, self._tokenizer, task_type=task)
             if hasattr(result, "tolist"):
                 all_embeddings.extend(result.tolist())
+            elif result and hasattr(result[0], "tolist"):
+                all_embeddings.extend(r.tolist() for r in result)
             else:
-                all_embeddings.extend(
-                    r.tolist() if hasattr(r, "tolist") else list(r) for r in result
-                )
+                all_embeddings.extend(list(r) for r in result)
 
         return all_embeddings
 

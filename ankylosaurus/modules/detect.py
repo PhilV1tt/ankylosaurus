@@ -44,6 +44,19 @@ def _run(cmd: list[str], default: str = "") -> str:
         return default
 
 
+def _detect_apple_chip() -> str:
+    """Detect exact Apple Silicon chip model (e.g. 'Apple M5 Pro')."""
+    # system_profiler gives the most reliable chip name
+    sp_raw = _run(["system_profiler", "SPHardwareDataType"])
+    for line in sp_raw.splitlines():
+        stripped = line.strip()
+        if "Chip:" in stripped:
+            return stripped.split(":", 1)[1].strip()
+    # Fallback to sysctl
+    brand = _run(["sysctl", "-n", "machdep.cpu.brand_string"])
+    return brand or "Apple Silicon"
+
+
 def _detect_macos() -> HardwareProfile:
     import psutil
 
@@ -51,6 +64,10 @@ def _detect_macos() -> HardwareProfile:
     cpu_brand = _run(["sysctl", "-n", "machdep.cpu.brand_string"])
     if not cpu_brand:
         cpu_brand = _run(["uname", "-m"])
+
+    # Apple Silicon: detect exact chip model
+    if arch == "arm64":
+        cpu_brand = _detect_apple_chip()
 
     # Apple Silicon GPU info via system_profiler
     gpu_name = ""
@@ -116,11 +133,12 @@ def _detect_linux() -> HardwareProfile:
     gpu_cores = 0
     gpu_vram_gb = 0.0
 
-    # NVIDIA
+    # NVIDIA (take first line only for multi-GPU systems)
     if shutil.which("nvidia-smi"):
         nv = _run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
         if nv:
-            parts = nv.split(",")
+            first_line = nv.splitlines()[0]
+            parts = first_line.split(",")
             gpu_name = parts[0].strip()
             gpu_type = "nvidia"
             try:
@@ -185,7 +203,8 @@ def _detect_windows() -> HardwareProfile:
     if shutil.which("nvidia-smi"):
         nv = _run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
         if nv:
-            parts = nv.split(",")
+            first_line = nv.splitlines()[0]
+            parts = first_line.split(",")
             gpu_name = parts[0].strip()
             gpu_type = "nvidia"
             try:

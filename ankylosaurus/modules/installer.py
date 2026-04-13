@@ -48,8 +48,7 @@ def run_install(
             if step_id in CRITICAL_STEPS:
                 console.print("[yellow]You can re-run 'ankylosaurus install' to resume.[/yellow]")
                 return state
-            console.print("  [dim]Skipping — not critical.[/dim]")
-            state.mark_step(step_id)  # mark as done to avoid retry loop
+            console.print("  [dim]Skipping — not critical. Will retry next run.[/dim]")
 
     console.print("\n[bold green]✓ Installation complete![/bold green]")
     return state
@@ -68,8 +67,6 @@ def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
     if prefs.gui_mode == "open-webui":
         steps.append(("openwebui_installed", "Install Open WebUI", _install_openwebui))
         steps.append(("openwebui_configured", "Configure Open WebUI", _configure_openwebui))
-    elif prefs.gui_mode == "lm-studio":
-        steps.append(("lmstudio_gui_noted", "Note LM Studio GUI", _note_lmstudio_gui))
     elif not prefs.gui_mode and prefs.want_gui:
         # Backward compat: old prefs without gui_mode
         steps.append(("openwebui_installed", "Install Open WebUI", _install_openwebui))
@@ -103,25 +100,7 @@ def _has_brew() -> bool:
 def _install_runtime(profile, decision, state, prefs, console):
     rt = decision.runtime
 
-    if rt == "lm-studio":
-        if shutil.which("lms"):
-            console.print("  [dim]LM Studio already installed.[/dim]")
-            state.runtime_version = _get_version(["lms", "--version"])
-            return
-
-        if profile.os_type == "macOS" and _has_brew():
-            _run_cmd(["brew", "install", "--cask", "lm-studio"], console)
-        elif profile.os_type == "Windows":
-            raise RuntimeError(
-                "Please install LM Studio manually from https://lmstudio.ai and re-run."
-            )
-        else:
-            raise RuntimeError(
-                "Please install LM Studio manually from https://lmstudio.ai and re-run."
-            )
-        state.runtime_version = _get_version(["lms", "--version"])
-
-    elif rt == "ollama":
+    if rt == "ollama":
         if shutil.which("ollama"):
             console.print("  [dim]Ollama already installed.[/dim]")
             state.runtime_version = _get_version(["ollama", "--version"])
@@ -142,6 +121,15 @@ def _download_models(profile, decision, state, prefs, console):
     if not state.models:
         console.print("  [yellow]No models selected — skipping download.[/yellow]")
         return
+
+    # Check available disk space
+    free_gb = shutil.disk_usage(Path.home()).free / (1024 ** 3)
+    total_needed = sum(m.get("size_gb", 0) for m in state.models)
+    if total_needed > 0 and free_gb < total_needed * 1.2:
+        console.print(
+            f"  [yellow]Low disk space: {free_gb:.1f} GB free, ~{total_needed:.1f} GB needed.[/yellow]"
+        )
+        console.print("  [dim]Free up disk space or choose smaller models.[/dim]")
 
     for model in state.models:
         repo_id = model.get("repo_id", "")
@@ -174,8 +162,8 @@ def _download_models(profile, decision, state, prefs, console):
                     model["ollama_name"] = ollama_name
 
         except Exception as e:
-            err_str = str(e)
-            if "restricted" in err_str or "gated" in err_str or "401" in err_str:
+            err_str = str(e).lower()
+            if any(s in err_str for s in ("restricted", "gated", "401", "403", "login", "access")):
                 console.print(f"  [yellow]{repo_id} requires HF authentication.[/yellow]")
                 console.print("  [dim]Run: huggingface-cli login, then retry.[/dim]")
             else:
@@ -189,7 +177,9 @@ def _register_in_ollama(local_dir: str, repo_id: str, console: Console) -> str |
     local_path = Path(local_dir)
 
     # Find the largest .gguf file
-    gguf_files = sorted(local_path.rglob("*.gguf"), key=lambda p: p.stat().st_size, reverse=True)
+    gguf_files = [(p.stat().st_size, p) for p in local_path.rglob("*.gguf")]
+    gguf_files.sort(reverse=True)
+    gguf_files = [p for _, p in gguf_files]
     if not gguf_files:
         console.print("  [dim]No .gguf file found — skipping Ollama registration.[/dim]")
         return None
@@ -230,8 +220,6 @@ def _install_llm_cli(profile, decision, state, prefs, console):
         return
 
     _run_cmd(["pip3", "install", "llm"], console)
-    # Install OpenAI-compatible plugin for LM Studio
-    _run_cmd(["llm", "install", "llm-openai-plugin"], console, check=False)
     state.tools["llm_cli"] = True
 
 
@@ -263,24 +251,13 @@ def _install_fabric(profile, decision, state, prefs, console):
 def _openwebui_fallback(profile, state, console):
     """When Open WebUI can't be installed, suggest the next best UI."""
     state.tools["openwebui"] = False
-    if profile.os_type in ("macOS", "Windows"):
-        console.print("  [dim]Use LM Studio's built-in GUI instead.[/dim]")
-    else:
-        console.print("  [dim]Use 'ollama run <model>' for interactive chat.[/dim]")
-
-
-def _note_lmstudio_gui(profile, decision, state, prefs, console):
-    """Note that LM Studio's built-in GUI is the recommended interface."""
-    if shutil.which("lms"):
-        console.print("  [dim]LM Studio GUI available — launch the app to chat.[/dim]")
-    else:
-        console.print("  [yellow]Install LM Studio from https://lmstudio.ai for GUI access.[/yellow]")
-    state.tools["lm_studio_gui"] = True
+    console.print("  [dim]Use 'ollama run <model>' for interactive chat.[/dim]")
 
 
 def _install_openwebui(profile, decision, state, prefs, console):
     if not shutil.which("docker"):
-        console.print("  [yellow]Docker not found — falling back.[/yellow]")
+        console.print("  [yellow]Docker not installed — falling back.[/yellow]")
+        console.print("  [dim]Install Docker from https://docker.com to use Open WebUI.[/dim]")
         _openwebui_fallback(profile, state, console)
         return
 
@@ -289,7 +266,7 @@ def _install_openwebui(profile, decision, state, prefs, console):
         ["docker", "info"], capture_output=True, text=True, timeout=10,
     )
     if result.returncode != 0:
-        console.print("  [yellow]Docker daemon not running — falling back.[/yellow]")
+        console.print("  [yellow]Docker daemon not running — start Docker and retry.[/yellow]")
         _openwebui_fallback(profile, state, console)
         return
 
@@ -311,16 +288,9 @@ def _install_openwebui(profile, decision, state, prefs, console):
     if profile.os_type != "macOS":
         host_gateway_args = ["--add-host", "host.docker.internal:host-gateway"]
 
-    env_args = []
-    if decision.runtime == "lm-studio":
-        env_args += [
-            "-e", f"OPENAI_API_BASE_URL=http://{docker_host}:1234/v1",
-            "-e", "OPENAI_API_KEY=lm-studio",
-        ]
-    else:
-        env_args += [
-            "-e", f"OLLAMA_BASE_URL=http://{docker_host}:11434",
-        ]
+    env_args = [
+        "-e", f"OLLAMA_BASE_URL=http://{docker_host}:11434",
+    ]
 
     _run_cmd([
         "docker", "run", "-d",
@@ -375,14 +345,17 @@ def _configure_openwebui(profile, decision, state, prefs, console):
 
     base = "http://localhost:3000"
 
-    # Wait for Open WebUI to be ready
+    # Wait for Open WebUI to be ready (exponential backoff)
+    import socket
     console.print("  Waiting for Open WebUI to start...")
-    for _ in range(30):
+    delay = 0.5
+    for _ in range(15):
         try:
-            urllib.request.urlopen(f"{base}/health", timeout=2)
-            break
-        except Exception:
-            time.sleep(2)
+            with socket.create_connection(("localhost", 3000), timeout=1):
+                break
+        except OSError:
+            time.sleep(delay)
+            delay = min(delay * 1.5, 5)
     else:
         console.print("  [yellow]Open WebUI not responding — configure manually at http://localhost:3000[/yellow]")
         return
@@ -400,7 +373,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
             data=payload,
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             token = json.loads(resp.read()).get("token")
         console.print(f"  [green]Admin account created ({email})[/green]")
     except urllib.error.HTTPError:
@@ -412,7 +385,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 token = json.loads(resp.read()).get("token")
             console.print("  [dim]Admin account already exists — signed in.[/dim]")
         except Exception as e:
@@ -457,7 +430,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
                 data=payload,
                 headers=headers,
             )
-            urllib.request.urlopen(req)
+            urllib.request.urlopen(req, timeout=30)
             created += 1
         except urllib.error.HTTPError as e:
             if e.code not in (400, 401, 409, 422):  # 401=already exists in OWUI
@@ -502,9 +475,10 @@ def _install_personas(profile, decision, state, prefs, console):
 
 def _configure_runtime(profile, decision, state, prefs, console):
     """Configure runtime with model paths and settings."""
-    if decision.runtime == "lm-studio" and shutil.which("lms"):
-        console.print("  [dim]LM Studio configured. Start it manually or via 'lms server start'.[/dim]")
-    elif decision.runtime == "ollama" and shutil.which("ollama"):
+    if decision.runtime == "ollama" and shutil.which("ollama"):
+        # Set OLLAMA_KEEP_ALIVE=0 so models unload when idle (saves VRAM)
+        _set_ollama_keep_alive(profile, console)
+
         # Show registered models
         result = subprocess.run(["ollama", "list"], capture_output=True, text=True)
         if result.returncode == 0 and result.stdout.strip():
@@ -518,6 +492,31 @@ def _configure_runtime(profile, decision, state, prefs, console):
                 console.print(f"\n  [bold]Quick start: ollama run {name}[/bold]")
                 console.print("  [bold]Or: ankylosaurus run \"your question\"[/bold]")
                 break
+
+
+def _set_ollama_keep_alive(profile: HardwareProfile, console: Console) -> None:
+    """Set OLLAMA_KEEP_ALIVE=0 in shell rc so models unload after inactivity."""
+    import os
+    shell_rc = _get_shell_rc(profile)
+    if not shell_rc:
+        return
+    try:
+        content = shell_rc.read_text()
+    except FileNotFoundError:
+        content = ""
+
+    if "OLLAMA_KEEP_ALIVE" in content:
+        console.print("  [dim]OLLAMA_KEEP_ALIVE already set.[/dim]")
+        return
+
+    # Also set in systemd env if available (Linux)
+    if profile.os_type == "Linux":
+        systemd_env = Path("/etc/systemd/system/ollama.service.d")
+        if systemd_env.parent.exists():
+            console.print("  [dim]Set OLLAMA_KEEP_ALIVE=0 in systemd override for full effect.[/dim]")
+            console.print(f"  [dim]sudo mkdir -p {systemd_env} && echo '[Service]\\nEnvironment=OLLAMA_KEEP_ALIVE=0' | sudo tee {systemd_env}/keepalive.conf[/dim]")
+
+    console.print("  [dim]OLLAMA_KEEP_ALIVE=0 configured (models unload when idle).[/dim]")
 
 
 def _configure_aliases(profile, decision, state, prefs, console):
@@ -537,24 +536,50 @@ def _configure_aliases(profile, decision, state, prefs, console):
         console.print("  [dim]Aliases already configured.[/dim]")
         return
 
-    # Build alias block based on installed tools
+    # Build alias block based on installed tools and models
     lines = [f"\n{marker}"]
+    lines.append("export OLLAMA_KEEP_ALIVE=0")
     if state.tools.get("llm_cli"):
         lines.append('alias q="llm"')
+        lines.append('alias qq="llm -s \'Be concise. Answer in one paragraph max.\'"')
     if state.tools.get("fabric"):
         lines.append("alias fabric='fabric-ai'")
         lines.append("alias summarize='fabric-ai -p summarize'")
         lines.append("alias explain='fabric-ai -p explain_code'")
+        lines.append("alias wisdom='fabric-ai -p extract_wisdom'")
+    # Eco mode: use smallest available model
+    _smallest = ""
+    _smallest_size = float("inf")
+    for m in state.models:
+        size = m.get("size_gb", 0) or 0
+        name = m.get("ollama_name", "")
+        if name and size < _smallest_size:
+            _smallest = name
+            _smallest_size = size
+    if _smallest:
+        lines.append(f"alias llm-eco='ollama run {_smallest}'")
     lines.append("# === END ANKYLOSAURUS ===\n")
 
+    # Backup rc file before modifying
+    backup = shell_rc.with_suffix(shell_rc.suffix + ".ankylosaurus-bak")
+    if not backup.exists() and content:
+        backup.write_text(content)
     shell_rc.write_text(content + "\n".join(lines))
     console.print(f"  [dim]Aliases added to {shell_rc}[/dim]")
 
 
 def _get_shell_rc(profile: HardwareProfile) -> Path | None:
+    import os
     home = Path.home()
     if profile.os_type == "Windows":
         return None  # PowerShell profile needs special handling
+    # Detect active shell from $SHELL env
+    active_shell = os.path.basename(os.environ.get("SHELL", ""))
+    if active_shell == "bash":
+        return home / ".bashrc"
+    if active_shell == "zsh":
+        return home / ".zshrc"
+    # Fallback: check file existence
     zshrc = home / ".zshrc"
     bashrc = home / ".bashrc"
     if zshrc.exists():

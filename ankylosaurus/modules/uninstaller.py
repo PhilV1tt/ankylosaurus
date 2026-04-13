@@ -96,16 +96,11 @@ def _remove_pip(pkg: str, state: InstallState, console: Console) -> None:
 
 
 def _remove_runtime(state: InstallState, console: Console) -> None:
-    rt = state.runtime
-    if rt == "lm-studio" and shutil.which("brew"):
-        subprocess.run(["brew", "uninstall", "--cask", "lm-studio"],
+    if shutil.which("brew"):
+        subprocess.run(["brew", "uninstall", "ollama"],
                        capture_output=True, text=True)
-    elif rt == "ollama":
-        if shutil.which("brew"):
-            subprocess.run(["brew", "uninstall", "ollama"],
-                           capture_output=True, text=True)
-        else:
-            console.print("  [dim]Remove Ollama manually if needed.[/dim]")
+    else:
+        console.print("  [dim]Remove Ollama manually if needed.[/dim]")
 
 
 def _remove_models(state: InstallState, console: Console) -> None:

@@ -6,7 +6,7 @@ from ankylosaurus.modules.detect import HardwareProfile
 
 def test_m5_gets_mlx(m5_profile):
     d = decide_runtime(m5_profile)
-    assert d.runtime == "lm-studio"
+    assert d.runtime == "ollama"
     assert d.backend == "mlx"
     assert d.quantization == "Q6_K"
     assert d.max_context_length >= 16384
@@ -41,9 +41,9 @@ def test_ui_open_webui_when_docker_available(m5_profile):
     assert d.ui == "open-webui"
 
 
-def test_ui_lmstudio_when_no_docker_macos(m5_profile):
+def test_ui_ollama_cli_when_no_docker_macos(m5_profile):
     d = decide_runtime(m5_profile, docker_info=None)
-    assert d.ui == "lm-studio"
+    assert d.ui == "ollama-cli"
 
 
 def test_ui_ollama_cli_linux_no_docker(rtx2070_profile):
@@ -51,9 +51,9 @@ def test_ui_ollama_cli_linux_no_docker(rtx2070_profile):
     assert d.ui == "ollama-cli"
 
 
-def test_ui_lmstudio_budget_windows(budget_profile):
+def test_ui_ollama_cli_budget_windows(budget_profile):
     d = decide_runtime(budget_profile, docker_info=None)
-    assert d.ui == "lm-studio"
+    assert d.ui == "ollama-cli"
 
 
 def test_open_webui_deducts_ram_overhead(m5_profile):

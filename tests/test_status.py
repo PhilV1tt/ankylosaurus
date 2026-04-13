@@ -8,7 +8,7 @@ from rich.console import Console
 
 def test_show_status_no_state_no_crash(monkeypatch):
     monkeypatch.setattr("ankylosaurus.modules.status.state_exists", lambda: False)
-    console = Console(file=open(os.devnull, "w"))
+    console = Console(file=open(os.devnull, "w", encoding="utf-8"))
     show_status(console)  # should not raise
 
 
@@ -24,5 +24,5 @@ def test_show_status_with_state_no_crash(monkeypatch):
     )
     monkeypatch.setattr("ankylosaurus.modules.status.state_exists", lambda: True)
     monkeypatch.setattr("ankylosaurus.modules.status.load_state", lambda: state)
-    console = Console(file=open(os.devnull, "w"))
+    console = Console(file=open(os.devnull, "w", encoding="utf-8"))
     show_status(console)  # should not raise

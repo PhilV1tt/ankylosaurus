@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+import tempfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -12,14 +15,25 @@ from .chunker import ingest_pdf
 from .embedder import Embedder
 from .store import VectorStore
 
-LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 RAG_PORT = int(os.getenv("RAG_PORT", "1235"))
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
-app = FastAPI(title="ANKYLOSAURUS RAG Proxy")
-
-# Singletons — initialized at startup
+# Singletons — initialized at startup, cleaned up at shutdown
 _embedder: Embedder | None = None
 _store: VectorStore | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # Cleanup singletons on shutdown
+    global _embedder, _store
+    _embedder = None
+    _store = None
+
+
+app = FastAPI(title="ANKYLOSAURUS RAG Proxy", lifespan=lifespan)
 
 
 def _get_embedder() -> Embedder:
@@ -54,7 +68,7 @@ def _build_context_message(chunks: list[dict]) -> str:
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: dict):
-    """Intercept chat requests, add RAG context, forward to LM Studio."""
+    """Intercept chat requests, add RAG context, forward to Ollama."""
     import httpx
 
     messages = request.get("messages", [])
@@ -81,7 +95,7 @@ async def chat_completions(request: dict):
             messages = [{"role": "system", "content": context}] + messages
             request = {**request, "messages": messages}
 
-    # Forward to LM Studio
+    # Forward to Ollama
     stream = request.get("stream", False)
 
     async with httpx.AsyncClient(timeout=120.0) as client:
@@ -89,7 +103,7 @@ async def chat_completions(request: dict):
             async def stream_response():
                 async with client.stream(
                     "POST",
-                    f"{LM_STUDIO_URL}/v1/chat/completions",
+                    f"{OLLAMA_URL}/v1/chat/completions",
                     json=request,
                 ) as resp:
                     async for chunk in resp.aiter_bytes():
@@ -98,7 +112,7 @@ async def chat_completions(request: dict):
             return StreamingResponse(stream_response(), media_type="text/event-stream")
         else:
             resp = await client.post(
-                f"{LM_STUDIO_URL}/v1/chat/completions",
+                f"{OLLAMA_URL}/v1/chat/completions",
                 json=request,
             )
             return resp.json()
@@ -132,10 +146,10 @@ async def embeddings(request: dict):
 
 @app.get("/v1/models")
 async def list_models():
-    """Proxy to LM Studio models endpoint."""
+    """Proxy to Ollama models endpoint."""
     import httpx
     async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(f"{LM_STUDIO_URL}/v1/models")
+        resp = await client.get(f"{OLLAMA_URL}/v1/models")
         return resp.json()
 
 
@@ -147,22 +161,36 @@ async def ingest(file: UploadFile = File(...), chunk_size: int = 512, overlap: i
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are supported")
 
-    # Save to temp
-    tmp_path = Path("/tmp") / file.filename
+    # Sanitize filename to prevent path traversal
+    safe_name = Path(file.filename).name
+    if not safe_name or safe_name.startswith("."):
+        raise HTTPException(400, "Invalid filename")
+
+    # Read with size limit
     content = await file.read()
-    tmp_path.write_bytes(content)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"File too large (max {MAX_UPLOAD_BYTES // (1024*1024)} MB)")
+
+    # Save to platform-agnostic temp file
+    tmp_fd, tmp_str = tempfile.mkstemp(suffix=".pdf")
+    tmp_path = Path(tmp_str)
+    try:
+        await asyncio.to_thread(tmp_path.write_bytes, content)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
     try:
-        chunks = ingest_pdf(str(tmp_path), chunk_size=chunk_size, overlap=overlap)
+        chunks = await asyncio.to_thread(ingest_pdf, str(tmp_path), chunk_size, overlap)
         if not chunks:
             raise HTTPException(400, "No text found in PDF")
 
         embedder = _get_embedder()
         texts = [c["text"] for c in chunks]
-        embeddings = embedder.embed(texts, task="retrieval.passage")
+        embeddings = await asyncio.to_thread(embedder.embed, texts, "retrieval.passage")
 
         store = _get_store()
-        doc_name = Path(file.filename).stem
+        doc_name = Path(safe_name).stem
         n = store.add_document(doc_name, chunks, embeddings)
 
         return {"document": doc_name, "chunks": n, "status": "ingested"}

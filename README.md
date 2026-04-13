@@ -21,13 +21,13 @@ curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstra
 
 ## What it does
 
-| Step | What happens |
-|------|-------------|
-| **Detect** | Reads your CPU, GPU (NVIDIA / AMD / Apple Silicon), RAM, and disk |
-| **Decide** | Picks runtime (Ollama or LM Studio), backend (MLX / CUDA / ROCm / CPU), and quantization level |
-| **Discover** | Searches HuggingFace Hub live — no hardcoded model list |
-| **Install** | Downloads runtime, pulls models, sets up CLI tools and optional GUI apps |
-| **Resume** | Ctrl-C at any point, re-run, and it picks up exactly where it stopped |
+1. **Detects hardware** — CPU, GPU, RAM, disk (macOS / Linux / Windows)
+2. **Picks optimal setup** — runtime (Ollama), backend (MLX, CUDA, ROCm, CPU), quantization
+3. **Searches models live** — queries HuggingFace Hub in real-time, zero hardcoded model names
+4. **Installs everything** — runtime, models, CLI tools (llm, fabric-ai), GUI apps (Open WebUI, AnythingLLM)
+5. **Resumes on interruption** — Ctrl-C mid-install, re-run, picks up where it left off
+6. **Manages extensions** — MCP servers, fabric patterns, Obsidian, Raycast
+7. **Includes 8 personas** — coder, researcher, writer, tutor, analyst, translator, summarizer, general
 
 ---
 
@@ -76,16 +76,14 @@ ankylosaurus uninstall        Clean removal of all installed components
 
 ## Hardware decision matrix
 
-Ankylosaurus picks the right stack automatically:
-
-| Hardware | OS | Runtime | Backend |
-|----------|----|---------|---------|
-| Apple Silicon | macOS | LM Studio | MLX |
-| Intel / AMD CPU only | macOS | Ollama | llama.cpp |
-| NVIDIA GPU | Linux | Ollama | CUDA |
-| AMD GPU | Linux | Ollama | ROCm |
-| NVIDIA GPU | Windows | LM Studio | CUDA |
-| Any | Any (fallback) | Ollama | CPU |
+| GPU | OS | Runtime | Backend |
+|-----|-----|---------|---------|
+| Apple Silicon | macOS | Ollama | MLX |
+| None | macOS Intel | Ollama | llama.cpp |
+| NVIDIA | Linux | Ollama | CUDA |
+| AMD | Linux | Ollama | ROCm |
+| NVIDIA | Windows | Ollama | CUDA |
+| Fallback | Any | Ollama | CPU |
 
 Quantization is chosen from available RAM:
 

@@ -19,12 +19,23 @@ from . import __version__
 # State helpers
 # ---------------------------------------------------------------------------
 
+_state_cache: tuple[float, dict] | None = None
+
+
 def _load_state_summary() -> dict:
-    """Load install state and return a structured summary."""
-    from .modules.state import state_exists, load_state
+    """Load install state and return a structured summary (cached by mtime)."""
+    global _state_cache
+    from .modules.state import state_exists, load_state, STATE_FILE
 
     if not state_exists():
         return {}
+
+    try:
+        mtime = STATE_FILE.stat().st_mtime
+    except OSError:
+        return {}
+    if _state_cache and _state_cache[0] == mtime:
+        return _state_cache[1]
 
     state = load_state()
     summary: dict = {}
@@ -69,21 +80,20 @@ def _load_state_summary() -> dict:
     # Personas
     summary["personas"] = state.personas or []
 
+    _state_cache = (mtime, summary)
     return summary
 
 
 def _check_runtime_alive(runtime: str) -> bool:
     """Check if the runtime process is responding."""
-    if runtime == "ollama" and shutil.which("ollama"):
-        result = subprocess.run(
-            ["ollama", "list"], capture_output=True, text=True, timeout=3,
-        )
-        return result.returncode == 0
-    if runtime == "lm-studio" and shutil.which("lms"):
-        result = subprocess.run(
-            ["lms", "status"], capture_output=True, text=True, timeout=3,
-        )
-        return result.returncode == 0
+    try:
+        if runtime == "ollama" and shutil.which("ollama"):
+            result = subprocess.run(
+                ["ollama", "list"], capture_output=True, text=True, timeout=3,
+            )
+            return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        pass
     return False
 
 
@@ -92,7 +102,7 @@ def _get_ram_available() -> float:
     try:
         import psutil
         return round(psutil.virtual_memory().available / (1024 ** 3), 1)
-    except Exception:
+    except (ImportError, OSError):
         return 0.0
 
 
@@ -116,7 +126,7 @@ class BrandHeader(Static):
         self._runtime_name = rt.get("name", "")
         self.ram_available = _get_ram_available()
         self.runtime_alive = _check_runtime_alive(self._runtime_name) if self._runtime_name else False
-        self.set_interval(10, self._refresh_status)
+        self.set_interval(30, self._refresh_status)
 
     def _refresh_status(self) -> None:
         if self._runtime_name:
@@ -276,7 +286,7 @@ class PersonasView(Static):
                     f"  [bold #ffd028]{name:14s}[/]  "
                     f"[#999]{lang}[/]  [#666]{desc}[/]"
                 )
-        except Exception:
+        except (ImportError, KeyError, TypeError):
             for name in self._personas:
                 yield Label(f"  [#ffd028]{name}[/]")
 
@@ -306,7 +316,6 @@ class ToolsView(Static):
             yield Label("\n[bold #e66414]  Interface[/]\n")
             ui_labels = {
                 "open-webui": "Open WebUI  [#999](http://localhost:3000)[/]",
-                "lm-studio": "LM Studio  [#999](app native)[/]",
                 "ollama-cli": "Ollama CLI  [#999](ollama run <model>)[/]",
                 "terminal": "Terminal  [#999](ankylosaurus run)[/]",
             }
@@ -445,6 +454,7 @@ class AnkylosaurusApp(App):
     def __init__(self) -> None:
         super().__init__()
         self._summary: dict = {}
+        self._suspended = False
 
     def compose(self) -> ComposeResult:
         yield BrandHeader(id="brand-header")
@@ -489,6 +499,8 @@ class AnkylosaurusApp(App):
 
     @on(ListView.Selected, "#sidebar")
     def handle_sidebar(self, event: ListView.Selected) -> None:
+        if self._suspended:
+            return
         item: SidebarItem = event.item  # type: ignore[assignment]
         if item.is_sep:
             return
@@ -507,6 +519,7 @@ class AnkylosaurusApp(App):
 
         # Suspend-to-terminal commands — run as subprocess to avoid asyncio conflict
         if key in ("install", "run", "uninstall", "update", "check"):
+            self._suspended = True
             with self.suspend():
                 subprocess.run(["ankylosaurus", key])
                 print("\nAppuie sur Entree pour revenir...")
@@ -514,6 +527,7 @@ class AnkylosaurusApp(App):
                     input()
                 except (EOFError, KeyboardInterrupt):
                     pass
+            self._suspended = False
             self._refresh_and_show(self.current_view)
             return
 
@@ -552,5 +566,10 @@ class AnkylosaurusApp(App):
 
 def run_tui() -> None:
     """Launch the Textual TUI."""
-    app = AnkylosaurusApp()
-    app.run()
+    try:
+        app = AnkylosaurusApp()
+        app.run()
+    except Exception as e:
+        from rich.console import Console
+        Console().print(f"\n[yellow]TUI error: {e}[/yellow]")
+        Console().print("[dim]Falling back to CLI. Use 'ankylosaurus install' directly.[/dim]\n")

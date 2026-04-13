@@ -15,7 +15,7 @@ def test_brew_upgrade_calls_brew(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", mock_run)
-    console = Console(file=open(os.devnull, "w"))
+    console = Console(file=open(os.devnull, "w", encoding="utf-8"))
     _brew_upgrade("ollama", console)
 
     assert len(calls) == 1
@@ -30,10 +30,10 @@ def test_brew_upgrade_cask(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", mock_run)
-    console = Console(file=open(os.devnull, "w"))
-    _brew_upgrade("lm-studio", console, cask=True)
+    console = Console(file=open(os.devnull, "w", encoding="utf-8"))
+    _brew_upgrade("anythingllm", console, cask=True)
 
-    assert calls[0] == ["brew", "upgrade", "--cask", "lm-studio"]
+    assert calls[0] == ["brew", "upgrade", "--cask", "anythingllm"]
 
 
 def test_pip_upgrade_calls_pip(monkeypatch):
@@ -44,7 +44,7 @@ def test_pip_upgrade_calls_pip(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", mock_run)
-    console = Console(file=open(os.devnull, "w"))
+    console = Console(file=open(os.devnull, "w", encoding="utf-8"))
     _pip_upgrade("llm", console)
 
     assert calls[0] == ["pip3", "install", "--upgrade", "llm"]

@@ -104,6 +104,27 @@ BUILTIN_PERSONAS = {
 }
 
 
+_custom_persona_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _load_custom_persona(path: Path) -> dict | None:
+    """Load a custom persona JSON with mtime-based cache."""
+    key = str(path)
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return None
+    cached = _custom_persona_cache.get(key)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        data = json.loads(path.read_text())
+        _custom_persona_cache[key] = (mtime, data)
+        return data
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def list_personas(state: InstallState, console: Console) -> None:
     """Display all personas (built-in + custom)."""
     table = Table(title="Personas", border_style="dim")
@@ -113,18 +134,23 @@ def list_personas(state: InstallState, console: Console) -> None:
     table.add_column("Preview")
 
     for name, p in BUILTIN_PERSONAS.items():
-        table.add_row(name, "[dim]built-in[/dim]", p["language"], p["system"][:60] + "...")
+        preview = p["system"][:60] + ("..." if len(p["system"]) > 60 else "")
+        table.add_row(name, "[dim]built-in[/dim]", p["language"], preview)
 
-    # Custom personas from templates dir
+    # Custom personas from templates dir (cached by mtime)
     for f in sorted(TEMPLATES_DIR.glob("*.json")):
         try:
-            data = json.loads(f.read_text())
+            data = _load_custom_persona(f)
+            if data is None:
+                continue
             name = data.get("name", f.stem)
             if name not in BUILTIN_PERSONAS:
+                sys_prompt = data.get("system", "")
+                preview = sys_prompt[:60] + ("..." if len(sys_prompt) > 60 else "")
                 table.add_row(
                     name, "[cyan]custom[/cyan]",
                     data.get("language", "?"),
-                    data.get("system", "")[:60] + "...",
+                    preview,
                 )
         except (json.JSONDecodeError, KeyError):
             pass
@@ -132,16 +158,45 @@ def list_personas(state: InstallState, console: Console) -> None:
     console.print(table)
 
 
+def _sanitize_persona_name(name: str) -> str:
+    """Validate and sanitize persona name for safe filesystem use."""
+    import re
+    name = name.strip()
+    # Strip path separators
+    name = Path(name).name
+    # Only allow alphanumeric, hyphens, underscores
+    name = re.sub(r"[^a-zA-Z0-9_-]", "", name)
+    if not name:
+        raise ValueError("Persona name must contain at least one alphanumeric character.")
+    if len(name) > 64:
+        raise ValueError("Persona name must be 64 characters or less.")
+    return name
+
+
 def create_persona(console: Console) -> dict:
     """Interactively create a new persona."""
-    name = Prompt.ask("Persona name")
+    raw_name = Prompt.ask("Persona name")
+    try:
+        name = _sanitize_persona_name(raw_name)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        return {"name": ""}
+
     system = Prompt.ask("System prompt")
+    if len(system) > 10000:
+        console.print("[yellow]System prompt truncated to 10,000 characters.[/yellow]")
+        system = system[:10000]
+
     language = Prompt.ask("Language", choices=["en", "fr", "multi"], default="en")
 
     persona = {"name": name, "system": system, "language": language}
 
     TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
     path = TEMPLATES_DIR / f"{name}.json"
+    # Verify path stays within templates dir
+    if not path.resolve().is_relative_to(TEMPLATES_DIR.resolve()):
+        console.print("[red]Invalid persona name.[/red]")
+        return {"name": ""}
     path.write_text(json.dumps(persona, indent=2, ensure_ascii=False))
     console.print(f"[green]✓ Persona '{name}' saved to {path}[/green]")
     return persona
@@ -149,6 +204,7 @@ def create_persona(console: Console) -> dict:
 
 def edit_persona(name: str, console: Console) -> dict | None:
     """Edit an existing custom persona."""
+    name = Path(name).name  # strip path components
     path = TEMPLATES_DIR / f"{name}.json"
     if not path.exists():
         console.print(f"[red]Persona '{name}' not found.[/red]")
@@ -166,6 +222,7 @@ def edit_persona(name: str, console: Console) -> dict | None:
 
 def delete_persona(name: str, state: InstallState, console: Console) -> None:
     """Delete a custom persona."""
+    name = Path(name).name  # strip path components
     if name in BUILTIN_PERSONAS:
         console.print(f"[yellow]Cannot delete built-in persona '{name}'.[/yellow]")
         return
@@ -193,3 +250,70 @@ def install_builtin_personas(state: InstallState, selected: list[str] | None = N
         if not path.exists():
             path.write_text(json.dumps(BUILTIN_PERSONAS[name], indent=2, ensure_ascii=False))
     state.personas = [n for n in names if n in BUILTIN_PERSONAS]
+
+
+def _load_persona(name: str) -> dict | None:
+    """Load a persona by name (built-in or custom file)."""
+    if name in BUILTIN_PERSONAS:
+        return BUILTIN_PERSONAS[name]
+    path = TEMPLATES_DIR / f"{name}.json"
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+    return None
+
+
+def export_persona_msty(name: str, output_dir: Path | None = None) -> Path | None:
+    """Export a persona as Msty-compatible JSON."""
+    persona = _load_persona(name)
+    if not persona:
+        return None
+
+    msty_data = {
+        "name": persona["name"],
+        "description": f"ANKYLOSAURUS persona: {persona['name']}",
+        "systemPrompt": persona["system"],
+        "language": persona.get("language", "en"),
+        "temperature": 0.7,
+        "maxTokens": 4096,
+    }
+
+    out = (output_dir or Path.cwd()) / f"{name}_msty.json"
+    out.write_text(json.dumps(msty_data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return out
+
+
+def export_persona_ollama(name: str, output_dir: Path | None = None) -> Path | None:
+    """Export a persona as Ollama Modelfile."""
+    persona = _load_persona(name)
+    if not persona:
+        return None
+
+    # Escape quotes in system prompt for Modelfile
+    system = persona["system"].replace('"', '\\"')
+    modelfile = f'FROM {{}}\nSYSTEM "{system}"\n'
+
+    out = (output_dir or Path.cwd()) / f"{name}.Modelfile"
+    out.write_text(modelfile, encoding="utf-8")
+    return out
+
+
+def export_persona(name: str, console: Console, output_dir: Path | None = None) -> None:
+    """Export a persona to both Msty JSON and Ollama Modelfile formats."""
+    name = Path(name).name  # strip path components
+
+    persona = _load_persona(name)
+    if not persona:
+        console.print(f"[red]Persona '{name}' not found.[/red]")
+        return
+
+    msty_path = export_persona_msty(name, output_dir)
+    if msty_path:
+        console.print(f"[green]✓ Msty JSON: {msty_path}[/green]")
+
+    ollama_path = export_persona_ollama(name, output_dir)
+    if ollama_path:
+        console.print(f"[green]✓ Ollama Modelfile: {ollama_path}[/green]")
+        console.print(f"  [dim]Usage: ollama create {name} -f {ollama_path}[/dim]")
