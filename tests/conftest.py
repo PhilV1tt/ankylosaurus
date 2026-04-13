@@ -14,6 +14,7 @@ def m5_profile():
         gpu_vram_gb=24.0,
         ram_total_gb=24.0, ram_available_gb=12.0, ram_unified=True,
         disk_free_gb=300.0, disk_is_ssd=True,
+        mem_bandwidth_gbs=120.0,
     )
 
 
@@ -26,6 +27,7 @@ def rtx2070_profile():
         gpu_vram_gb=8.0,
         ram_total_gb=32.0, ram_available_gb=20.0, ram_unified=False,
         disk_free_gb=335.0, disk_is_ssd=True,
+        mem_bandwidth_gbs=448.0,
     )
 
 
@@ -38,4 +40,5 @@ def budget_profile():
         gpu_vram_gb=0.0,
         ram_total_gb=8.0, ram_available_gb=4.0, ram_unified=False,
         disk_free_gb=50.0, disk_is_ssd=True,
+        mem_bandwidth_gbs=40.0,
     )

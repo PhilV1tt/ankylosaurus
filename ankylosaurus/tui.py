@@ -10,7 +10,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ScrollableContainer
 from textual.reactive import reactive
-from textual.widgets import Footer, Label, ListItem, ListView, Static, DataTable
+from textual.widgets import Button, Footer, Label, ListItem, ListView, Static, DataTable
 
 from . import __version__
 
@@ -327,18 +327,18 @@ class ToolsView(Static):
 # ---------------------------------------------------------------------------
 
 MENU_ITEMS = [
-    ("home", "◆", "Accueil"),
-    ("models", "◈", "Modeles"),
+    ("home", "◆", "Home"),
+    ("models", "◈", "Models"),
     ("personas", "◉", "Personas"),
-    ("tools", "⚙", "Outils"),
+    ("tools", "⚙", "Tools"),
     ("---", "", ""),
-    ("install", "▶", "Installer"),
-    ("check", "↻", "Verifier"),
-    ("update", "⇡", "Mettre a jour"),
-    ("run", "▸", "Discuter"),
+    ("install", "▶", "Install"),
+    ("check", "↻", "Check"),
+    ("update", "⇡", "Update"),
+    ("run", "▸", "Chat"),
     ("---", "", ""),
-    ("uninstall", "✕", "Desinstaller"),
-    ("quit", "⏻", "Quitter"),
+    ("uninstall", "✕", "Uninstall"),
+    ("quit", "⏻", "Quit"),
 ]
 
 
@@ -440,12 +440,12 @@ class AnkylosaurusApp(App):
     """
 
     BINDINGS = [
-        Binding("q", "quit_app", "Quitter"),
-        Binding("r", "refresh_all", "Rafraichir"),
-        Binding("1", "goto_home", "Accueil", show=False),
-        Binding("2", "goto_models", "Modeles", show=False),
+        Binding("q", "quit_app", "Quit"),
+        Binding("r", "refresh_all", "Refresh"),
+        Binding("1", "goto_home", "Home", show=False),
+        Binding("2", "goto_models", "Models", show=False),
         Binding("3", "goto_personas", "Personas", show=False),
-        Binding("4", "goto_tools", "Outils", show=False),
+        Binding("4", "goto_tools", "Tools", show=False),
         Binding("tab", "toggle_focus", "Focus", show=False),
     ]
 
@@ -455,6 +455,10 @@ class AnkylosaurusApp(App):
         super().__init__()
         self._summary: dict = {}
         self._suspended = False
+        self._wizard_step = -1  # -1 = not in wizard
+        self._wizard_profile_data: dict = {}
+        self._wizard_selected_personas: list[str] = []
+        self._wizard_hw_profile = None
 
     def compose(self) -> ComposeResult:
         yield BrandHeader(id="brand-header")
@@ -517,12 +521,17 @@ class AnkylosaurusApp(App):
             self.exit()
             return
 
-        # Suspend-to-terminal commands — run as subprocess to avoid asyncio conflict
-        if key in ("install", "run", "uninstall", "update", "check"):
+        # Install — launch wizard inline
+        if key == "install":
+            self._start_wizard()
+            return
+
+        # Suspend-to-terminal commands
+        if key in ("run", "uninstall", "update", "check"):
             self._suspended = True
             with self.suspend():
                 subprocess.run(["ankylosaurus", key])
-                print("\nAppuie sur Entree pour revenir...")
+                print("\nPress Enter to return...")
                 try:
                     input()
                 except (EOFError, KeyboardInterrupt):
@@ -530,6 +539,159 @@ class AnkylosaurusApp(App):
             self._suspended = False
             self._refresh_and_show(self.current_view)
             return
+
+    # --- Wizard flow ---
+
+    def _start_wizard(self) -> None:
+        from .tui_wizard import WelcomeScreen
+        self._wizard_step = 0
+        main = self.query_one("#main", ScrollableContainer)
+        main.remove_children()
+        main.mount(WelcomeScreen())
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "wizard-next":
+            self._wizard_advance()
+        elif event.button.id == "wizard-done":
+            self._wizard_step = -1
+            self._refresh_and_show("home")
+
+    def _wizard_advance(self) -> None:
+        main = self.query_one("#main", ScrollableContainer)
+
+        if self._wizard_step == 0:
+            # Welcome → Profile
+            self._wizard_step = 1
+            from .tui_wizard import ProfileScreen
+            main.remove_children()
+            main.mount(ProfileScreen())
+
+        elif self._wizard_step == 1:
+            # Profile → Preview (generate personas from profile)
+            from .tui_wizard import ProfileScreen, PreviewScreen
+            profile_screen = main.query_one(ProfileScreen)
+            self._wizard_profile_data = profile_screen.get_profile_data()
+
+            from .modules.personas import UserProfile, select_personas
+            profile = UserProfile(
+                occupation=self._wizard_profile_data["occupation"],
+                domains=self._wizard_profile_data["domains"],
+                languages=[self._wizard_profile_data["language"]],
+                primary_language=self._wizard_profile_data["language"],
+            )
+
+            templates = select_personas(profile)
+            persona_list = [(t.id, t.name_tpl, True) for t in templates]
+
+            self._wizard_step = 2
+            main.remove_children()
+            main.mount(PreviewScreen(persona_list))
+
+        elif self._wizard_step == 2:
+            # Preview → Install
+            from .tui_wizard import PreviewScreen, InstallScreen
+            preview_screen = main.query_one(PreviewScreen)
+            self._wizard_selected_personas = preview_screen.get_selected()
+
+            self._wizard_step = 3
+            main.remove_children()
+            install_screen = InstallScreen()
+            main.mount(install_screen)
+
+            # Run installer in background worker
+            self.run_worker(self._run_install_worker, thread=True)
+
+        elif self._wizard_step == 3:
+            # Install → Done (auto-advanced from worker)
+            pass
+
+    def _run_install_worker(self) -> None:
+        """Run the full install in a worker thread."""
+        from rich.console import Console
+        import io
+
+        from .modules.detect import detect_hardware, detect_docker
+        from .modules.decision import decide_runtime
+        from .modules.personas import UserProfile, generate_personas
+        from .modules.questionnaire import UserPreferences
+        from .modules.installer import run_install
+        from .modules.state import load_state, save_state
+
+        # Use captured hardware profile or detect fresh
+        hw_profile = getattr(self, "_wizard_hw_profile", None)
+        if not hw_profile:
+            hw_profile = detect_hardware()
+
+        docker_info = detect_docker()
+        decision = decide_runtime(hw_profile, docker_info=docker_info)
+
+        state = load_state()
+        state.hardware = {
+            "os": hw_profile.os_type, "cpu": hw_profile.cpu_brand,
+            "gpu": hw_profile.gpu_name, "ram_gb": hw_profile.ram_total_gb,
+        }
+        state.runtime = decision.runtime
+
+        # Build profile from wizard data
+        pd = self._wizard_profile_data
+        profile = UserProfile(
+            occupation=pd.get("occupation", "other"),
+            domains=pd.get("domains", []),
+            languages=[pd.get("language", "en")],
+            primary_language=pd.get("language", "en"),
+        )
+
+        prefs = UserPreferences(
+            usage=pd.get("occupation", "general"),
+            features=["chat", "rag"],
+            disk_budget_gb=pd.get("disk_budget", 30),
+            want_gui=pd.get("want_gui", True),
+            language=pd.get("language", "en"),
+            battery_mode=(hw_profile.os_type == "macOS"),
+            gui_mode="open-webui" if pd.get("want_gui", True) and docker_info.get("installed") else "terminal",
+            personas=self._wizard_selected_personas,
+            profile=profile,
+        )
+
+        from dataclasses import asdict
+        state.preferences = {
+            "usage": prefs.usage, "features": prefs.features,
+            "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
+            "gui_mode": prefs.gui_mode, "language": prefs.language,
+            "battery_mode": prefs.battery_mode,
+            "profile": asdict(profile),
+        }
+        save_state(state)
+
+        # Run install with a null console (output goes to TUI via call_from_thread)
+        console = Console(file=io.StringIO())
+
+        try:
+            run_install(hw_profile, decision, state, prefs, console)
+        except Exception:
+            pass  # non-fatal — state already saved
+
+        # Show done screen
+        from .modules.guide import save_guide
+        try:
+            guide_path = str(save_guide(state))
+        except Exception:
+            guide_path = ""
+
+        def _show_done():
+            from .tui_wizard import DoneScreen
+            main = self.query_one("#main", ScrollableContainer)
+            main.remove_children()
+            main.mount(DoneScreen({
+                "runtime": state.runtime,
+                "model_count": len(state.models),
+                "persona_count": len(state.personas),
+                "gui_url": "http://localhost:3000" if state.tools.get("openwebui") else "",
+                "guide_path": guide_path,
+            }))
+            self._wizard_step = 4
+
+        self.call_from_thread(_show_done)
 
     # --- Key bindings ---
 

@@ -113,11 +113,13 @@ def install(
 
     # 3. Questionnaire
     prefs = run_questionnaire(profile, decision=decision, yes_mode=_yes_mode)
+    from dataclasses import asdict
     state.preferences = {
         "usage": prefs.usage, "features": prefs.features,
         "disk_budget_gb": prefs.disk_budget_gb, "want_gui": prefs.want_gui,
         "gui_mode": prefs.gui_mode, "language": prefs.language,
         "battery_mode": prefs.battery_mode,
+        "profile": asdict(prefs.profile),
     }
 
     # 4. Model selection

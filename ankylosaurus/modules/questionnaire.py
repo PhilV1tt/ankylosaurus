@@ -7,6 +7,35 @@ import sys
 from dataclasses import dataclass, field
 from .detect import HardwareProfile
 from .decision import RuntimeDecision
+from .personas import UserProfile, select_personas, generate_personas
+
+
+# Available domain choices for the profiling step
+DOMAIN_CHOICES = [
+    ("science", "Science & Math"),
+    ("code", "Programming"),
+    ("writing", "Writing & Communication"),
+    ("notes", "Notes & Knowledge Management"),
+    ("research", "Academic Research"),
+    ("music", "Music"),
+    ("sports", "Sports & Fitness"),
+    ("health", "Health & Nutrition"),
+    ("aviation", "Aviation"),
+    ("automotive", "Automotive & Mechanical"),
+    ("data", "Data Analysis"),
+    ("freelance", "Freelance & Business"),
+    ("tech", "Tech Watch & AI"),
+    ("debate", "Philosophy & Debate"),
+]
+
+# Occupation → implicit use_cases mapping
+_OCCUPATION_USE_CASES = {
+    "student": ["study"],
+    "developer": ["code"],
+    "researcher": ["research", "study"],
+    "freelancer": ["code", "write"],
+    "other": [],
+}
 
 
 @dataclass
@@ -19,6 +48,7 @@ class UserPreferences:
     battery_mode: bool
     gui_mode: str = ""      # "open-webui" | "ollama-cli" | "terminal"
     personas: list[str] = field(default_factory=list)
+    profile: UserProfile = field(default_factory=UserProfile)
     webui_name: str = ""
     webui_email: str = ""
     webui_password: str = field(default="", repr=False)  # ephemeral — never persist
@@ -35,6 +65,24 @@ def _ask(question, default=None):
     return result
 
 
+def _build_profile(occupation: str, domains: list[str], language: str) -> UserProfile:
+    """Build a UserProfile from questionnaire answers."""
+    use_cases = list(_OCCUPATION_USE_CASES.get(occupation, []))
+    # Infer use_cases from domains
+    if "writing" in domains or "notes" in domains:
+        use_cases.append("write")
+    if "notes" in domains:
+        use_cases.append("organize")
+
+    return UserProfile(
+        occupation=occupation,
+        domains=domains,
+        languages=[language] if language != "multi" else ["en"],
+        primary_language=language,
+        use_cases=list(set(use_cases)),
+    )
+
+
 def run_questionnaire(
     profile: HardwareProfile,
     decision: RuntimeDecision | None = None,
@@ -46,7 +94,9 @@ def run_questionnaire(
 
     if yes_mode:
         max_disk = min(int(profile.disk_free_gb * 0.5), 100)
-        from .personas import BUILTIN_PERSONAS
+        user_profile = UserProfile()  # defaults: no domains, English
+        selected = select_personas(user_profile)
+        persona_names = [t.id for t in selected]
         console.print("[dim]Non-interactive mode: using defaults.[/dim]")
         ui_mode = decision.ui if decision else "open-webui"
         want_gui = ui_mode == "open-webui"
@@ -61,7 +111,8 @@ def run_questionnaire(
             language="multi",
             battery_mode=False,
             gui_mode=ui_mode,
-            personas=list(BUILTIN_PERSONAS.keys()),
+            personas=persona_names,
+            profile=user_profile,
             webui_name=webui_name,
             webui_email=webui_email,
             webui_password=webui_password,
@@ -81,22 +132,51 @@ def run_questionnaire(
         ("checkbox-selected", "fg:#e66414 bold"),
     ])
 
-    console.print("\n[bold cyan]Configuration[/bold cyan]\n")
+    # --- User profiling ---
+    console.print("\n[bold cyan]About you[/bold cyan]\n")
 
-    usage = _ask(questionary.select(
-        "Primary usage:",
-        choices=["general", "code", "studies", "writing"],
-        default="general",
+    occupation = _ask(questionary.select(
+        "What do you do?",
+        choices=[
+            questionary.Choice("Student", value="student"),
+            questionary.Choice("Developer / Engineer", value="developer"),
+            questionary.Choice("Researcher", value="researcher"),
+            questionary.Choice("Freelancer", value="freelancer"),
+            questionary.Choice("Other", value="other"),
+        ],
+        default="other",
         style=style,
-    ), default="general")
+    ), default="other")
+
+    domain_choices = [
+        questionary.Choice(label, value=key)
+        for key, label in DOMAIN_CHOICES
+    ]
+    domains = _ask(questionary.checkbox(
+        "Your interests (select all that apply):",
+        choices=domain_choices,
+        style=style,
+    ), default=[])
+
+    language = _ask(questionary.select(
+        "Primary language:",
+        choices=["en", "fr", "multi"],
+        default="en",
+        style=style,
+    ), default="en")
+
+    user_profile = _build_profile(occupation, domains, language)
+
+    # --- Configuration ---
+    console.print("\n[bold cyan]Configuration[/bold cyan]\n")
 
     features = _ask(questionary.checkbox(
         "Features:",
         choices=[
-            questionary.Choice("chat", checked=True),
-            questionary.Choice("rag", checked=True),
-            questionary.Choice("notes"),
-            questionary.Choice("agents"),
+            questionary.Choice("Chat", value="chat", checked=True),
+            questionary.Choice("RAG (PDF Q&A)", value="rag", checked=True),
+            questionary.Choice("Notes integration", value="notes"),
+            questionary.Choice("Agents", value="agents"),
         ],
         style=style,
     ), default=["chat"])
@@ -154,13 +234,6 @@ def run_questionnaire(
             webui_password = secrets.token_urlsafe(16)
             console.print(f"  [dim]Generated password: {webui_password}[/dim]")
 
-    language = _ask(questionary.select(
-        "Primary language:",
-        choices=["multi", "en", "fr"],
-        default="multi",
-        style=style,
-    ), default="multi")
-
     battery_mode = False
     if profile.os_type == "macOS":
         battery_mode = _ask(questionary.confirm(
@@ -169,26 +242,33 @@ def run_questionnaire(
             style=style,
         ), default=False)
 
-    # Persona selection
-    from .personas import BUILTIN_PERSONAS
-
+    # --- Persona selection from profile ---
+    selected_templates = select_personas(user_profile)
     persona_choices = [
         questionary.Choice(
-            f"{name} ({data['language']})",
-            value=name,
+            f"{t.id} — {t.name_tpl}",
+            value=t.id,
             checked=True,
         )
-        for name, data in BUILTIN_PERSONAS.items()
+        for t in selected_templates
     ]
-
     selected_personas = _ask(questionary.checkbox(
         "Personas to install:",
         choices=persona_choices,
         style=style,
-    ), default=list(BUILTIN_PERSONAS.keys()))
+    ), default=[t.id for t in selected_templates])
+
+    # Map usage to the legacy field
+    usage_map = {
+        "student": "studies",
+        "developer": "code",
+        "researcher": "studies",
+        "freelancer": "code",
+        "other": "general",
+    }
 
     return UserPreferences(
-        usage=usage,
+        usage=usage_map.get(occupation, "general"),
         features=features,
         disk_budget_gb=disk_budget,
         want_gui=want_gui,
@@ -196,6 +276,7 @@ def run_questionnaire(
         battery_mode=battery_mode,
         gui_mode=gui_mode,
         personas=selected_personas,
+        profile=user_profile,
         webui_name=webui_name,
         webui_email=webui_email,
         webui_password=webui_password,

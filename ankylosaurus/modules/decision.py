@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .detect import HardwareProfile
+
+# Bytes per parameter for each quantization level
+BYTES_PER_PARAM: dict[str, float] = {
+    "Q8_0": 1.0, "Q6_K": 0.75, "Q5_K_M": 0.65,
+    "Q4_K_M": 0.55, "Q3_K_M": 0.44, "Q2_K": 0.33,
+    "mlx-8bit": 1.0, "mlx-4bit": 0.55,
+}
 
 
 @dataclass
@@ -14,11 +21,13 @@ class RuntimeDecision:
     max_model_params_b: float
     max_context_length: int
     ui: str = "terminal"  # "open-webui" | "ollama-cli" | "terminal"
+    quantization_hierarchy: list[str] = field(default_factory=list)
 
 
 def decide_runtime(profile: HardwareProfile, docker_info: dict | None = None) -> RuntimeDecision:
     runtime, backend = _pick_runtime_backend(profile)
     quant = _pick_quantization(profile)
+    hierarchy = _pick_quantization_hierarchy(profile, backend)
     ui = _pick_ui(profile, runtime, docker_info)
     ram_overhead = 2.0 if ui == "open-webui" else 0.0
     max_params = _estimate_max_params(profile, quant, ram_overhead)
@@ -31,6 +40,7 @@ def decide_runtime(profile: HardwareProfile, docker_info: dict | None = None) ->
         max_model_params_b=max_params,
         max_context_length=max_ctx,
         ui=ui,
+        quantization_hierarchy=hierarchy,
     )
 
 
@@ -72,10 +82,27 @@ def _pick_quantization(profile: HardwareProfile) -> str:
     return "Q2_K"
 
 
+def _pick_quantization_hierarchy(profile: HardwareProfile, backend: str) -> list[str]:
+    """Return quantization levels from best to worst that might fit."""
+    if backend == "mlx":
+        return ["mlx-8bit", "mlx-4bit"] if profile.ram_total_gb >= 24 else ["mlx-4bit"]
+
+    all_quants = ["Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "Q3_K_M", "Q2_K"]
+    ram = profile.ram_total_gb
+    if ram >= 48:
+        return all_quants
+    if ram >= 24:
+        return all_quants[1:]      # skip Q8
+    if ram >= 16:
+        return all_quants[2:]      # start at Q5_K_M
+    if ram >= 8:
+        return all_quants[3:]      # start at Q4_K_M
+    return all_quants[4:]          # Q3 and Q2 only
+
+
 def _estimate_max_params(profile: HardwareProfile, quant: str, ram_overhead_gb: float = 0.0) -> float:
     """Estimate max model size in billions of params that fits in memory."""
-    bpp = {"Q6_K": 0.75, "Q4_K_M": 0.55, "Q3_K_M": 0.44, "Q2_K": 0.33}
-    bytes_per_param = bpp.get(quant, 0.55)
+    bytes_per_param = BYTES_PER_PARAM.get(quant, 0.55)
 
     if profile.ram_unified:
         # Apple Silicon: model competes with OS for unified memory

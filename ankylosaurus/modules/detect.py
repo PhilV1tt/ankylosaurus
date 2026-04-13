@@ -24,6 +24,48 @@ class HardwareProfile:
     ram_unified: bool
     disk_free_gb: float
     disk_is_ssd: bool
+    mem_bandwidth_gbs: float = 0.0  # memory bandwidth in GB/s (for speed estimation)
+
+
+# --- Memory bandwidth lookup tables ---
+
+_APPLE_BANDWIDTH: dict[str, float] = {
+    "M1": 68, "M1 Pro": 200, "M1 Max": 400, "M1 Ultra": 800,
+    "M2": 100, "M2 Pro": 200, "M2 Max": 400, "M2 Ultra": 800,
+    "M3": 100, "M3 Pro": 150, "M3 Max": 300, "M3 Ultra": 600,
+    "M4": 120, "M4 Pro": 273, "M4 Max": 546, "M4 Ultra": 800,
+    "M5": 120, "M5 Pro": 273, "M5 Max": 546, "M5 Ultra": 800,
+}
+
+_NVIDIA_BANDWIDTH: dict[str, float] = {
+    "RTX 4090": 1008, "RTX 4080": 717, "RTX 4070 Ti": 504, "RTX 4070": 504,
+    "RTX 4060 Ti": 288, "RTX 4060": 272,
+    "RTX 3090": 936, "RTX 3080": 760, "RTX 3070": 448, "RTX 3060": 360,
+    "RTX 2080 Ti": 616, "RTX 2080": 448, "RTX 2070": 448, "RTX 2060": 336,
+    "A100": 2039, "H100": 3352, "L40": 864,
+}
+
+_DEFAULT_CPU_BANDWIDTH = 40.0  # conservative DDR4/DDR5 estimate
+
+
+def _lookup_apple_bandwidth(cpu_brand: str) -> float:
+    """Match Apple chip name to bandwidth. Tries most specific first."""
+    import re
+    m = re.search(r"M(\d+)\s*(Pro|Max|Ultra)?", cpu_brand)
+    if not m:
+        return _APPLE_BANDWIDTH.get("M1", 68.0)
+    chip = f"M{m.group(1)}"
+    if m.group(2):
+        chip += f" {m.group(2)}"
+    return _APPLE_BANDWIDTH.get(chip, 120.0)
+
+
+def _lookup_nvidia_bandwidth(gpu_name: str) -> float:
+    """Match NVIDIA GPU name to bandwidth. Tries substring match."""
+    for key, bw in _NVIDIA_BANDWIDTH.items():
+        if key in gpu_name:
+            return bw
+    return 400.0  # reasonable default for unknown NVIDIA
 
 
 def detect_hardware() -> HardwareProfile:
@@ -97,6 +139,8 @@ def _detect_macos() -> HardwareProfile:
     ram_total = mem.total / (1024 ** 3)
     vram = ram_total if gpu_type == "apple_silicon" else 0.0
 
+    bandwidth = _lookup_apple_bandwidth(cpu_brand) if gpu_type == "apple_silicon" else _DEFAULT_CPU_BANDWIDTH
+
     return HardwareProfile(
         os_type="macOS",
         os_version=platform.mac_ver()[0],
@@ -112,6 +156,7 @@ def _detect_macos() -> HardwareProfile:
         ram_unified=gpu_type == "apple_silicon",
         disk_free_gb=round(disk.free / (1024 ** 3), 1),
         disk_is_ssd=disk_is_ssd,
+        mem_bandwidth_gbs=bandwidth,
     )
 
 
@@ -172,6 +217,11 @@ def _detect_linux() -> HardwareProfile:
         except FileNotFoundError:
             pass
 
+    if gpu_type == "nvidia":
+        bandwidth = _lookup_nvidia_bandwidth(gpu_name)
+    else:
+        bandwidth = _DEFAULT_CPU_BANDWIDTH
+
     return HardwareProfile(
         os_type="Linux",
         os_version=platform.release(),
@@ -187,6 +237,7 @@ def _detect_linux() -> HardwareProfile:
         ram_unified=False,
         disk_free_gb=round(disk.free / (1024 ** 3), 1),
         disk_is_ssd=disk_is_ssd,
+        mem_bandwidth_gbs=bandwidth,
     )
 
 
@@ -227,6 +278,11 @@ def _detect_windows() -> HardwareProfile:
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage("C:\\")
 
+    if gpu_type == "nvidia":
+        bandwidth = _lookup_nvidia_bandwidth(gpu_name)
+    else:
+        bandwidth = _DEFAULT_CPU_BANDWIDTH
+
     return HardwareProfile(
         os_type="Windows",
         os_version=platform.version(),
@@ -242,6 +298,7 @@ def _detect_windows() -> HardwareProfile:
         ram_unified=False,
         disk_free_gb=round(disk.free / (1024 ** 3), 1),
         disk_is_ssd=True,  # assume SSD on modern Windows
+        mem_bandwidth_gbs=bandwidth,
     )
 
 

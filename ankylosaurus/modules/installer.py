@@ -75,9 +75,14 @@ def _build_steps(prefs: UserPreferences) -> list[tuple[str, str, callable]]:
         steps.append(("anythingllm_installed", "Install AnythingLLM", _install_anythingllm))
     steps += [
         ("personas_installed", "Install personas", _install_personas),
+        ("mcp_servers_installed", "Install MCP tools", _install_mcp_servers),
         ("runtime_configured", "Configure runtime", _configure_runtime),
-        ("aliases_configured", "Configure shell aliases", _configure_aliases),
     ]
+    if prefs.gui_mode == "open-webui" or (not prefs.gui_mode and prefs.want_gui):
+        steps.append(("webui_tools_configured", "Register tool servers", _configure_webui_tools))
+    if prefs.battery_mode:
+        steps.append(("power_manager_configured", "Configure power manager", _configure_power_manager))
+    steps.append(("aliases_configured", "Configure shell aliases", _configure_aliases))
     return steps
 
 
@@ -399,8 +404,8 @@ def _configure_openwebui(profile, decision, state, prefs, console):
         console.print("  [yellow]No auth token — skipping persona setup.[/yellow]")
         return
 
-    # 2. Create personas from selected builtin personas
-    from .personas import BUILTIN_PERSONAS, REASONING_PERSONAS
+    # 2. Create personas from selected personas
+    from .personas import BUILTIN_PERSONAS, REASONING_PERSONAS, generate_personas, _CATALOG_INDEX
 
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     selected = prefs.personas if prefs.personas else list(BUILTIN_PERSONAS.keys())
@@ -408,17 +413,27 @@ def _configure_openwebui(profile, decision, state, prefs, console):
     # Detect available models to pick best base for each persona type
     reasoning_model, chat_model = _pick_base_models(state)
 
+    # Build persona dicts (profile-aware if available)
+    persona_dicts = BUILTIN_PERSONAS
+    if hasattr(prefs, "profile") and prefs.profile:
+        model_map = {"reasoning": reasoning_model, "fast": chat_model, "uncensored": chat_model}
+        persona_dicts = generate_personas(prefs.profile, model_map)
+
     created = 0
     for persona_name in selected:
-        persona = BUILTIN_PERSONAS.get(persona_name)
+        persona = persona_dicts.get(persona_name)
         if not persona:
             continue
 
-        base_model = reasoning_model if persona_name in REASONING_PERSONAS else chat_model
+        is_reasoning = persona_name in REASONING_PERSONAS
+        base_model = reasoning_model if is_reasoning else chat_model
+
+        tpl = _CATALOG_INDEX.get(persona_name)
+        display_name = tpl.name_tpl if tpl else persona_name.replace("-", " ").title()
 
         payload = json.dumps({
             "id": persona_name,
-            "name": persona["name"].replace("-", " ").title(),
+            "name": display_name,
             "base_model_id": base_model,
             "meta": {"description": persona["system"][:80]},
             "params": {"system": persona["system"]},
@@ -594,3 +609,268 @@ def _get_version(cmd: list[str]) -> str:
         return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True).strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
+
+
+# --- Post-install: MCP servers ---
+
+def _install_mcp_servers(profile, decision, state, prefs, console):
+    """Install filesystem and fetch MCP tool servers."""
+    if not shutil.which("npm") and not shutil.which("npx"):
+        console.print("  [yellow]npm not found — skipping MCP servers.[/yellow]")
+        return
+
+    mcp_servers = [
+        ("filesystem", "@modelcontextprotocol/server-filesystem", "npm"),
+        ("fetch", "mcp-server-fetch", "uvx"),
+    ]
+
+    for name, package, method in mcp_servers:
+        if name in state.extensions.get("mcp", []):
+            console.print(f"  [dim]{name} already installed.[/dim]")
+            continue
+
+        console.print(f"  Installing MCP {name}...")
+        try:
+            if method == "npm":
+                result = subprocess.run(
+                    ["npm", "install", "-g", package],
+                    capture_output=True, text=True,
+                )
+            else:
+                # uvx-based — just verify it works
+                result = subprocess.run(
+                    ["uvx", package, "--help"],
+                    capture_output=True, text=True, timeout=15,
+                )
+
+            if "mcp" not in state.extensions:
+                state.extensions["mcp"] = []
+            state.extensions["mcp"].append(name)
+            console.print(f"  [green]✓ MCP {name}[/green]")
+        except Exception as e:
+            console.print(f"  [yellow]MCP {name} install failed: {e}[/yellow]")
+
+    # Create launchd/systemd service files for MCP proxy
+    if profile.os_type == "macOS":
+        _create_mcp_launchd_agents(profile, state, console)
+    elif profile.os_type == "Linux":
+        console.print("  [dim]MCP servers can be managed with systemd. See GUIDE.md.[/dim]")
+
+
+def _create_mcp_launchd_agents(profile, state, console):
+    """Create launchd plist files for MCP servers on macOS."""
+    launch_agents = Path.home() / "Library" / "LaunchAgents"
+    launch_agents.mkdir(parents=True, exist_ok=True)
+
+    # Only create if mcp-proxy is available
+    if not shutil.which("mcp-proxy") and not shutil.which("uvx"):
+        console.print("  [dim]mcp-proxy not found — skipping launchd agents.[/dim]")
+        console.print("  [dim]Install with: pip install mcp-proxy[/dim]")
+        return
+
+    proxy_cmd = shutil.which("mcp-proxy") or "mcp-proxy"
+    npx_path = shutil.which("npx") or "npx"
+    uvx_path = shutil.which("uvx") or "uvx"
+    home = str(Path.home())
+
+    configs = [
+        {
+            "label": "com.mcp.filesystem",
+            "port": 8808,
+            "args": [
+                proxy_cmd, "--transport", "streamablehttp",
+                "--port", "8808",
+                "--", npx_path, "-y", "@modelcontextprotocol/server-filesystem",
+                f"{home}/Documents", f"{home}/Downloads",
+            ],
+        },
+        {
+            "label": "com.mcp.fetch",
+            "port": 8810,
+            "args": [
+                proxy_cmd, "--transport", "streamablehttp",
+                "--port", "8810",
+                "--", uvx_path, "mcp-server-fetch",
+            ],
+        },
+    ]
+
+    import plistlib
+    for cfg in configs:
+        plist_path = launch_agents / f"{cfg['label']}.plist"
+        if plist_path.exists():
+            console.print(f"  [dim]{cfg['label']} already exists.[/dim]")
+            continue
+
+        plist_data = {
+            "Label": cfg["label"],
+            "ProgramArguments": cfg["args"],
+            "RunAtLoad": True,
+            "KeepAlive": True,
+            "StandardOutPath": f"/opt/homebrew/var/log/mcp-{cfg['label'].split('.')[-1]}.log",
+            "StandardErrorPath": f"/opt/homebrew/var/log/mcp-{cfg['label'].split('.')[-1]}.log",
+        }
+        plist_path.write_bytes(plistlib.dumps(plist_data))
+
+        # Load the agent
+        subprocess.run(["launchctl", "load", str(plist_path)], capture_output=True)
+        console.print(f"  [green]✓ {cfg['label']} (port {cfg['port']})[/green]")
+
+
+# --- Post-install: WebUI tool servers ---
+
+def _configure_webui_tools(profile, decision, state, prefs, console):
+    """Register MCP tool servers in Open WebUI."""
+    if not state.tools.get("openwebui"):
+        console.print("  [dim]Open WebUI not installed — skipping.[/dim]")
+        return
+
+    base = "http://localhost:3000"
+
+    # Get auth token
+    if not prefs.webui_email:
+        console.print("  [yellow]No WebUI credentials — skipping tool server registration.[/yellow]")
+        return
+
+    token = None
+    try:
+        payload = json.dumps({"email": prefs.webui_email, "password": prefs.webui_password}).encode()
+        req = urllib.request.Request(
+            f"{base}/api/v1/auths/signin",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            token = json.loads(resp.read()).get("token")
+    except Exception:
+        console.print("  [yellow]Could not authenticate to Open WebUI.[/yellow]")
+        return
+
+    if not token:
+        return
+
+    # Docker uses host.docker.internal to reach host services
+    docker_host = "host.docker.internal"
+    connections = []
+
+    # Check which MCP servers are running
+    for port, name in [(8808, "filesystem"), (8810, "fetch")]:
+        try:
+            import socket
+            with socket.create_connection(("localhost", port), timeout=1):
+                connections.append({
+                    "url": f"http://{docker_host}:{port}",
+                    "path": "mcp",
+                    "type": "mcp",
+                    "auth_type": "none",
+                    "key": "",
+                    "config": {},
+                })
+                console.print(f"  [dim]Found MCP {name} on port {port}[/dim]")
+        except OSError:
+            pass
+
+    if not connections:
+        console.print("  [dim]No MCP servers running — skipping.[/dim]")
+        return
+
+    try:
+        payload = json.dumps({"TOOL_SERVER_CONNECTIONS": connections}).encode()
+        req = urllib.request.Request(
+            f"{base}/api/v1/configs/tool_servers",
+            data=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=10)
+        console.print(f"  [green]✓ {len(connections)} tool servers registered in Open WebUI[/green]")
+    except Exception as e:
+        console.print(f"  [yellow]Tool server registration failed: {e}[/yellow]")
+
+
+# --- Post-install: Power manager (macOS) ---
+
+def _configure_power_manager(profile, decision, state, prefs, console):
+    """Set up AC/battery power-aware OLLAMA_KEEP_ALIVE on macOS."""
+    if profile.os_type != "macOS":
+        console.print("  [dim]Power manager is macOS-only.[/dim]")
+        return
+
+    script_path = Path("/opt/homebrew/bin/ollama-power-manager")
+    plist_path = Path.home() / "Library" / "LaunchAgents" / "com.ollama.power-manager.plist"
+
+    if plist_path.exists():
+        console.print("  [dim]Power manager already configured.[/dim]")
+        return
+
+    # Write the power manager script
+    script_content = '''#!/bin/bash
+# Ollama power-aware KEEP_ALIVE manager
+# AC: models stay loaded 5min. Battery: unload immediately.
+
+PREV_STATE=""
+
+while true; do
+    SOURCE=$(pmset -g batt | head -1)
+    if echo "$SOURCE" | grep -q "AC Power"; then
+        STATE="ac"
+    else
+        STATE="battery"
+    fi
+
+    if [ "$STATE" != "$PREV_STATE" ]; then
+        if [ "$STATE" = "ac" ]; then
+            launchctl setenv OLLAMA_KEEP_ALIVE "5m"
+        else
+            # Unload all models on battery
+            curl -sf http://localhost:11434/api/ps 2>/dev/null | \\
+                python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for m in data.get('models', []):
+        name = m.get('name', '')
+        if name:
+            import urllib.request
+            req = urllib.request.Request(
+                'http://localhost:11434/api/generate',
+                data=json.dumps({'model': name, 'keep_alive': 0}).encode(),
+                headers={'Content-Type': 'application/json'},
+            )
+            urllib.request.urlopen(req, timeout=5)
+except Exception:
+    pass
+" 2>/dev/null
+            launchctl setenv OLLAMA_KEEP_ALIVE "0"
+        fi
+        PREV_STATE="$STATE"
+    fi
+    sleep 30
+done
+'''
+
+    try:
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+        script_path.write_text(script_content)
+        script_path.chmod(0o755)
+    except PermissionError:
+        # Try with sudo or skip
+        console.print("  [yellow]Cannot write to /opt/homebrew/bin/ — skipping power manager.[/yellow]")
+        console.print(f"  [dim]Manual: save script to {script_path} and chmod +x[/dim]")
+        return
+
+    # Create launchd plist
+    import plistlib
+    plist_data = {
+        "Label": "com.ollama.power-manager",
+        "ProgramArguments": [str(script_path)],
+        "RunAtLoad": True,
+        "KeepAlive": True,
+        "StandardOutPath": "/opt/homebrew/var/log/ollama-power-manager.log",
+        "StandardErrorPath": "/opt/homebrew/var/log/ollama-power-manager.log",
+    }
+
+    plist_path.parent.mkdir(parents=True, exist_ok=True)
+    plist_path.write_bytes(plistlib.dumps(plist_data))
+    subprocess.run(["launchctl", "load", str(plist_path)], capture_output=True)
+    console.print("  [green]✓ Power manager active (5m AC / 0 battery)[/green]")
