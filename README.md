@@ -1,19 +1,19 @@
-```
+'''
    █████╗ ███╗   ██╗██╗  ██╗██╗   ██╗██╗      ██████╗ 
   ██╔══██╗████╗  ██║██║ ██╔╝╚██╗ ██╔╝██║     ██╔═══██╗
   ███████║██╔██╗ ██║█████╔╝  ╚████╔╝ ██║     ██║   ██║
   ██╔══██║██║╚██╗██║██╔═██╗   ╚██╔╝  ██║     ██║   ██║
   ██║  ██║██║ ╚████║██║  ██╗   ██║   ███████╗╚██████╔╝
   ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝
-```
+'''
 
 **One command to install and run a local LLM on your machine.**
 
 Ankylosaurus detects your hardware, selects the best runtime and models, and installs everything — no cloud, no subscription, no data leaving your machine.
 
-```bash
+'''bash
 curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstrap.sh | bash
-```
+'''
 
 > Works on macOS, Linux, and Windows. Python does not need to be installed beforehand.
 
@@ -35,28 +35,28 @@ curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstra
 
 ### Bootstrap (recommended)
 
-```bash
+'''bash
 curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstrap.sh | bash
 ankylosaurus install
-```
+'''
 
-The bootstrap script installs Python 3.10+, git, clones the repo to `~/.ankylosaurus/app/`, creates a virtualenv, and adds `ankylosaurus` (alias: `ankyl`) to your PATH.
+The bootstrap script installs Python 3.10+, git, clones the repo to '~/.ankylosaurus/app/', creates a virtualenv, and adds 'ankylosaurus' (alias: 'ankyl' or 'ankylo') to your PATH.
 
 ### Manual install
 
-```bash
+'''bash
 git clone https://github.com/PhilV1tt/ankylosaurus.git
 cd ankylosaurus
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 ankylosaurus install
-```
+'''
 
 ---
 
 ## Commands
 
-```
+'''
 ankylosaurus install          Full interactive setup
 ankyl install                 Same — short alias
 ankylo install                Same — short alias
@@ -70,7 +70,7 @@ ankylosaurus personas create  Create a new persona interactively
 ankylosaurus personas delete  Remove a custom persona
 
 ankylosaurus uninstall        Clean removal of all installed components
-```
+'''
 
 ---
 
@@ -104,11 +104,11 @@ Quantization is chosen from available RAM:
 
 Ingest PDFs and query them locally. Requires additional dependencies:
 
-```bash
+'''bash
 pip install -e ".[rag]"
-```
+'''
 
-> Note: the `mlx` dependency in `[rag]` is macOS Apple Silicon only. On Linux/Windows, install `pyarrow` and `lancedb` separately.
+> Note: the 'mlx' dependency in '[rag]' is macOS Apple Silicon only. On Linux/Windows, install 'pyarrow' and 'lancedb' separately.
 
 ### Extensions
 
@@ -119,13 +119,13 @@ Ankylosaurus can install and manage:
 
 ### Personas
 
-8 built-in personas ship out of the box: `coder`, `researcher`, `writer`, `tutor`, `analyst`, `translator`, `summarizer`, `general`. Create your own with `ankylosaurus personas create`.
+8 built-in personas ship out of the box: 'coder', 'researcher', 'writer', 'tutor', 'analyst', 'translator', 'summarizer', 'general'. Create your own with 'ankylosaurus personas create'.
 
 ---
 
 ## Project layout
 
-```
+'''
 ankylosaurus/
   cli.py              Entry point (Typer app, commands)
   tui.py              Interactive TUI (Textual)
@@ -151,13 +151,13 @@ ankylosaurus/
       store.py        LanceDB vector store
       server.py       FastAPI server for PDF ingestion and search
 bootstrap.sh          One-command installer (curl | bash)
-```
+'''
 
 ---
 
 ## Development
 
-```bash
+'''bash
 git clone https://github.com/PhilV1tt/ankylosaurus.git
 cd ankylosaurus
 python3 -m venv .venv && source .venv/bin/activate
@@ -165,7 +165,7 @@ pip install -e ".[dev]"
 pip install pyarrow lancedb   # for RAG tests
 
 python -m pytest tests/ -v
-```
+'''
 
 CI runs on Ubuntu, macOS, and Windows against Python 3.10, 3.12, and 3.13.
 
