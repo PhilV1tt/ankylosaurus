@@ -1,4 +1,4 @@
-"""Tests for status.py — dashboard display."""
+"""Tests for status.py - dashboard display."""
 
 import os
 

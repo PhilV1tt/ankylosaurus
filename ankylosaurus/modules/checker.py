@@ -1,4 +1,4 @@
-"""Version checker — compare installed vs latest available."""
+"""Version checker - compare installed vs latest available."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def run_check(state: InstallState, console: Console) -> None:
                 latest = "?"
             else:
                 status = "[dim]not installed[/dim]"
-                installed = latest = "—"
+                installed = latest = "-"
             table.add_row(name, installed, latest, status)
         except Exception:
             table.add_row(name, "?", "?", "[red]error[/red]")

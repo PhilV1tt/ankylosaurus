@@ -1,4 +1,4 @@
-"""Tests for detect.py — hardware detection."""
+"""Tests for detect.py - hardware detection."""
 
 from ankylosaurus.modules.detect import detect_hardware, detect_docker, HardwareProfile, display_hardware
 

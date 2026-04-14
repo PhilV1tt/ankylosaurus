@@ -1,1 +1,1 @@
-"""RAG proxy module — Jina v5 MLX embeddings + LanceDB + FastAPI proxy."""
+"""RAG proxy module - Jina v5 MLX embeddings + LanceDB + FastAPI proxy."""

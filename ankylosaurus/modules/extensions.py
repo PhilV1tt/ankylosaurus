@@ -1,4 +1,4 @@
-"""Extension menu — MCP servers, fabric patterns, additional tools."""
+"""Extension menu - MCP servers, fabric patterns, additional tools."""
 
 from __future__ import annotations
 
@@ -133,7 +133,7 @@ def _fabric_menu(state: InstallState, console: Console) -> None:
     import subprocess
     import shutil
     if not shutil.which("fabric-ai"):
-        console.print("[yellow]fabric-ai not installed — skipping.[/yellow]")
+        console.print("[yellow]fabric-ai not installed - skipping.[/yellow]")
         return
 
     table = Table(title="Fabric Patterns", border_style="dim")
@@ -207,7 +207,7 @@ def _obsidian_menu(state: InstallState, console: Console) -> None:
 
     if selected:
         state.extensions["obsidian"] = selected
-        console.print(f"  [green]✓ {len(selected)} plugins noted — install guide in GUIDE.md[/green]")
+        console.print(f"  [green]✓ {len(selected)} plugins noted - install guide in GUIDE.md[/green]")
 
 
 def _tools_menu(state: InstallState, console: Console) -> None:

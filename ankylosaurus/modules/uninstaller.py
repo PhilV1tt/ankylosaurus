@@ -1,4 +1,4 @@
-"""Clean uninstallation — reverse order, confirmation before each step."""
+"""Clean uninstallation - reverse order, confirmation before each step."""
 
 from __future__ import annotations
 

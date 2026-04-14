@@ -1,4 +1,4 @@
-"""TUI — Premium multi-panel dashboard built with Textual."""
+"""TUI - Premium multi-panel dashboard built with Textual."""
 
 from __future__ import annotations
 
@@ -521,7 +521,7 @@ class AnkylosaurusApp(App):
             self.exit()
             return
 
-        # Install — launch wizard inline
+        # Install - launch wizard inline
         if key == "install":
             self._start_wizard()
             return
@@ -669,7 +669,7 @@ class AnkylosaurusApp(App):
         try:
             run_install(hw_profile, decision, state, prefs, console)
         except Exception:
-            pass  # non-fatal — state already saved
+            pass  # non-fatal - state already saved
 
         # Show done screen
         from .modules.guide import save_guide

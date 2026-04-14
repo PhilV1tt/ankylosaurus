@@ -1,4 +1,4 @@
-"""Jina v5 MLX embedding engine — loads model natively on Apple Silicon."""
+"""Jina v5 MLX embedding engine - loads model natively on Apple Silicon."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ class Embedder:
 
         self._model = mod.JinaEmbeddingModel(config)
 
-        # Prefer quantized weights — find first existing file
+        # Prefer quantized weights - find first existing file
         candidates = ["model-4bit.safetensors", "model-8bit.safetensors", "model.safetensors"]
         weights_path = next((model_dir / f for f in candidates if (model_dir / f).exists()), None)
         if weights_path is None:

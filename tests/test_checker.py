@@ -1,4 +1,4 @@
-"""Tests for checker.py — version checking logic."""
+"""Tests for checker.py - version checking logic."""
 
 from ankylosaurus.modules.checker import _check_runtime
 from ankylosaurus.modules.state import InstallState

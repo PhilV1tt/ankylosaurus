@@ -1,4 +1,4 @@
-"""Status dashboard — Rich multi-panel view of installation state."""
+"""Status dashboard - Rich multi-panel view of installation state."""
 
 from __future__ import annotations
 

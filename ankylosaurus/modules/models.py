@@ -1,4 +1,4 @@
-"""Model discovery — multi-axis scoring with live HF Hub + curated catalog."""
+"""Model discovery - multi-axis scoring with live HF Hub + curated catalog."""
 
 from __future__ import annotations
 

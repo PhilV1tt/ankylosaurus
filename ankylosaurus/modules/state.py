@@ -1,4 +1,4 @@
-"""InstallState — single source of truth for ANKYLOSAURUS installations."""
+"""InstallState - single source of truth for ANKYLOSAURUS installations."""
 
 from __future__ import annotations
 

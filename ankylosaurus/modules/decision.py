@@ -1,4 +1,4 @@
-"""Runtime and quantization decision engine — pure logic, no I/O."""
+"""Runtime and quantization decision engine - pure logic, no I/O."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for extensions.py — MCP server list fallback."""
+"""Tests for extensions.py - MCP server list fallback."""
 
 from ankylosaurus.modules.extensions import _fallback_mcp_list
 

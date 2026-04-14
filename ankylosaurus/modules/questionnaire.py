@@ -51,7 +51,7 @@ class UserPreferences:
     profile: UserProfile = field(default_factory=UserProfile)
     webui_name: str = ""
     webui_email: str = ""
-    webui_password: str = field(default="", repr=False)  # ephemeral — never persist
+    webui_password: str = field(default="", repr=False)  # ephemeral - never persist
 
 
 def _ask(question, default=None):
@@ -194,7 +194,7 @@ def run_questionnaire(
 
     # Smart GUI recommendation based on hardware detection
     if decision and decision.ui == "open-webui":
-        gui_hint = "Docker detected — Open WebUI recommended"
+        gui_hint = "Docker detected - Open WebUI recommended"
     else:
         gui_hint = "Terminal mode (Ollama CLI)"
 
@@ -246,7 +246,7 @@ def run_questionnaire(
     selected_templates = select_personas(user_profile)
     persona_choices = [
         questionary.Choice(
-            f"{t.id} — {t.name_tpl}",
+            f"{t.id} - {t.name_tpl}",
             value=t.id,
             checked=True,
         )

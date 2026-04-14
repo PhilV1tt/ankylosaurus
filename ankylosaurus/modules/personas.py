@@ -1,4 +1,4 @@
-"""Persona manager — catalog, selection, CRUD + templates."""
+"""Persona manager - catalog, selection, CRUD + templates."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "personas
 
 
 # ---------------------------------------------------------------------------
-# Persona catalog — language-agnostic templates
+# Persona catalog - language-agnostic templates
 # ---------------------------------------------------------------------------
 
 @dataclass

@@ -1,4 +1,4 @@
-"""TUI install wizard — 5-screen flow inside the Textual app."""
+"""TUI install wizard - 5-screen flow inside the Textual app."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from textual.widget import Widget
 
 
 # ---------------------------------------------------------------------------
-# Screen 1: Welcome — hardware auto-detection
+# Screen 1: Welcome - hardware auto-detection
 # ---------------------------------------------------------------------------
 
 class WelcomeScreen(Static):
@@ -57,7 +57,7 @@ class WelcomeScreen(Static):
 
 
 # ---------------------------------------------------------------------------
-# Screen 2: Profile — who are you?
+# Screen 2: Profile - who are you?
 # ---------------------------------------------------------------------------
 
 DOMAIN_OPTIONS = [
@@ -139,7 +139,7 @@ class ProfileScreen(Static):
 
 
 # ---------------------------------------------------------------------------
-# Screen 3: Preview — selected personas
+# Screen 3: Preview - selected personas
 # ---------------------------------------------------------------------------
 
 class PreviewScreen(Static):
@@ -154,7 +154,7 @@ class PreviewScreen(Static):
         yield Label("  [dim]Toggle personas on/off before installing.[/]\n")
 
         for pid, name, active in self._personas:
-            yield Checkbox(f"{pid} — {name}", id=f"persona-{pid}", value=active)
+            yield Checkbox(f"{pid} - {name}", id=f"persona-{pid}", value=active)
 
         yield Label("")
         yield Button("Install", id="wizard-next", variant="primary")
@@ -169,7 +169,7 @@ class PreviewScreen(Static):
 
 
 # ---------------------------------------------------------------------------
-# Screen 4: Install — progress
+# Screen 4: Install - progress
 # ---------------------------------------------------------------------------
 
 class InstallScreen(Static):

@@ -1,4 +1,4 @@
-"""Tests for personas.py — catalog, selection, CRUD + templates."""
+"""Tests for personas.py - catalog, selection, CRUD + templates."""
 
 import json
 import os

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ANKYLOSAURUS bootstrap — works on machines with or without Python
+# ANKYLOSAURUS bootstrap - works on machines with or without Python
 # Usage: curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstrap.sh | bash
 
 REPO="https://github.com/PhilV1tt/ankylosaurus.git"

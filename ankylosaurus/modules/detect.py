@@ -132,7 +132,7 @@ def _detect_macos() -> HardwareProfile:
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
 
-    # SSD check — all modern Macs use NVMe
+    # SSD check - all modern Macs use NVMe
     disk_is_ssd = True
 
     # On Apple Silicon, VRAM = unified RAM

@@ -1,4 +1,4 @@
-"""Tests for updater.py — brew/pip upgrade helpers."""
+"""Tests for updater.py - brew/pip upgrade helpers."""
 
 import os
 import subprocess

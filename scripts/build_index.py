@@ -1,7 +1,7 @@
 """Build model recommendation index from HuggingFace Hub.
 
 Runs in CI (GitHub Actions) on schedule. Outputs data/model_index.json.
-No local storage needed — the index lives in the repo.
+No local storage needed - the index lives in the repo.
 """
 
 from __future__ import annotations

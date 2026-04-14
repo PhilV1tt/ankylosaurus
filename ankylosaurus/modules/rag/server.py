@@ -1,4 +1,4 @@
-"""FastAPI RAG proxy — intercepts chat completions, injects retrieved context."""
+"""FastAPI RAG proxy - intercepts chat completions, injects retrieved context."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 RAG_PORT = int(os.getenv("RAG_PORT", "1235"))
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
-# Singletons — initialized at startup, cleaned up at shutdown
+# Singletons - initialized at startup, cleaned up at shutdown
 _embedder: Embedder | None = None
 _store: VectorStore | None = None
 

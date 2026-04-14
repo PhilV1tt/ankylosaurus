@@ -9,7 +9,7 @@
 
 **One command to install and run a local LLM on your machine.**
 
-Ankylosaurus detects your hardware, selects the best runtime and models, and installs everything — no cloud, no subscription, no data leaving your machine.
+Ankylosaurus detects your hardware, selects the best runtime and models, and installs everything - no cloud, no subscription, no data leaving your machine.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstrap.sh | bash
@@ -21,13 +21,13 @@ curl -fsSL https://raw.githubusercontent.com/PhilV1tt/ankylosaurus/main/bootstra
 
 ## What it does
 
-1. **Detects hardware** — CPU, GPU, RAM, disk (macOS / Linux / Windows)
-2. **Picks optimal setup** — runtime (Ollama), backend (MLX, CUDA, ROCm, CPU), quantization
-3. **Searches models live** — queries HuggingFace Hub in real-time, zero hardcoded model names
-4. **Installs everything** — runtime, models, CLI tools (llm, fabric-ai), GUI apps (Open WebUI, AnythingLLM)
-5. **Resumes on interruption** — Ctrl-C mid-install, re-run, picks up where it left off
-6. **Manages extensions** — MCP servers, fabric patterns, Obsidian, Raycast
-7. **Includes 8 personas** — coder, researcher, writer, tutor, analyst, translator, summarizer, general
+1. **Detects hardware** - CPU, GPU, RAM, disk (macOS / Linux / Windows)
+2. **Picks optimal setup** - runtime (Ollama), backend (MLX, CUDA, ROCm, CPU), quantization
+3. **Searches models live** - queries HuggingFace Hub in real-time, zero hardcoded model names
+4. **Installs everything** - runtime, models, CLI tools (llm, fabric-ai), GUI apps (Open WebUI, AnythingLLM)
+5. **Resumes on interruption** - Ctrl-C mid-install, re-run, picks up where it left off
+6. **Manages extensions** - MCP servers, fabric patterns, Obsidian, Raycast
+7. **Includes 8 personas** - coder, researcher, writer, tutor, analyst, translator, summarizer, general
 
 ---
 
@@ -58,8 +58,8 @@ ankylosaurus install
 
 ```
 ankylosaurus install          Full interactive setup
-ankyl install                 Same — short alias
-ankylo install                Same — short alias
+ankyl install                 Same - short alias
+ankylo install                Same - short alias
 
 ankylosaurus status           Dashboard: installed components, running services
 ankylosaurus check            Check for updates and trending models
@@ -90,8 +90,8 @@ Quantization is chosen from available RAM:
 | RAM | Quantization |
 |-----|-------------|
 | 24 GB+ | Q6_K |
-| 16 – 24 GB | Q4_K_M |
-| 8 – 16 GB | Q3_K_M |
+| 16 - 24 GB | Q4_K_M |
+| 8 - 16 GB | Q3_K_M |
 | < 8 GB | Q2_K |
 
 ---

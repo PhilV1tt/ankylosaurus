@@ -1,4 +1,4 @@
-"""Tests for uninstaller.py — alias removal logic."""
+"""Tests for uninstaller.py - alias removal logic."""
 
 import os
 from pathlib import Path

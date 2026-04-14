@@ -1,4 +1,4 @@
-"""Component updater — update without breaking config."""
+"""Component updater - update without breaking config."""
 
 from __future__ import annotations
 

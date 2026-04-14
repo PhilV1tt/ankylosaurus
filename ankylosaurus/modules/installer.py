@@ -31,7 +31,7 @@ def run_install(
     total = len(steps)
     done = sum(1 for sid, _, _ in steps if state.is_done(sid))
     if done > 0:
-        console.print(f"\n[dim]Resuming — {done}/{total} steps already done.[/dim]")
+        console.print(f"\n[dim]Resuming - {done}/{total} steps already done.[/dim]")
 
     for step_id, label, func in steps:
         if state.is_done(step_id):
@@ -48,7 +48,7 @@ def run_install(
             if step_id in CRITICAL_STEPS:
                 console.print("[yellow]You can re-run 'ankylosaurus install' to resume.[/yellow]")
                 return state
-            console.print("  [dim]Skipping — not critical. Will retry next run.[/dim]")
+            console.print("  [dim]Skipping - not critical. Will retry next run.[/dim]")
 
     console.print("\n[bold green]✓ Installation complete![/bold green]")
     return state
@@ -124,7 +124,7 @@ def _install_runtime(profile, decision, state, prefs, console):
 
 def _download_models(profile, decision, state, prefs, console):
     if not state.models:
-        console.print("  [yellow]No models selected — skipping download.[/yellow]")
+        console.print("  [yellow]No models selected - skipping download.[/yellow]")
         return
 
     # Check available disk space
@@ -186,7 +186,7 @@ def _register_in_ollama(local_dir: str, repo_id: str, console: Console) -> str |
     gguf_files.sort(reverse=True)
     gguf_files = [p for _, p in gguf_files]
     if not gguf_files:
-        console.print("  [dim]No .gguf file found — skipping Ollama registration.[/dim]")
+        console.print("  [dim]No .gguf file found - skipping Ollama registration.[/dim]")
         return None
 
     gguf_path = gguf_files[0]
@@ -261,7 +261,7 @@ def _openwebui_fallback(profile, state, console):
 
 def _install_openwebui(profile, decision, state, prefs, console):
     if not shutil.which("docker"):
-        console.print("  [yellow]Docker not installed — falling back.[/yellow]")
+        console.print("  [yellow]Docker not installed - falling back.[/yellow]")
         console.print("  [dim]Install Docker from https://docker.com to use Open WebUI.[/dim]")
         _openwebui_fallback(profile, state, console)
         return
@@ -271,7 +271,7 @@ def _install_openwebui(profile, decision, state, prefs, console):
         ["docker", "info"], capture_output=True, text=True, timeout=10,
     )
     if result.returncode != 0:
-        console.print("  [yellow]Docker daemon not running — start Docker and retry.[/yellow]")
+        console.print("  [yellow]Docker daemon not running - start Docker and retry.[/yellow]")
         _openwebui_fallback(profile, state, console)
         return
 
@@ -341,11 +341,11 @@ def _pick_base_models(state: InstallState) -> tuple[str, str]:
 def _configure_openwebui(profile, decision, state, prefs, console):
     """Create admin account and personas in Open WebUI via API."""
     if not state.tools.get("openwebui"):
-        console.print("  [dim]Open WebUI not installed — skipping configuration.[/dim]")
+        console.print("  [dim]Open WebUI not installed - skipping configuration.[/dim]")
         return
 
     if not prefs.webui_email or not prefs.webui_password:
-        console.print("  [yellow]No credentials provided — configure Open WebUI manually at http://localhost:3000[/yellow]")
+        console.print("  [yellow]No credentials provided - configure Open WebUI manually at http://localhost:3000[/yellow]")
         return
 
     base = "http://localhost:3000"
@@ -362,14 +362,14 @@ def _configure_openwebui(profile, decision, state, prefs, console):
             time.sleep(delay)
             delay = min(delay * 1.5, 5)
     else:
-        console.print("  [yellow]Open WebUI not responding — configure manually at http://localhost:3000[/yellow]")
+        console.print("  [yellow]Open WebUI not responding - configure manually at http://localhost:3000[/yellow]")
         return
 
     name = prefs.webui_name or "admin"
     email = prefs.webui_email
     password = prefs.webui_password
 
-    # 1. Create admin account (signup — first user becomes admin)
+    # 1. Create admin account (signup - first user becomes admin)
     token = None
     try:
         payload = json.dumps({"name": name, "email": email, "password": password}).encode()
@@ -382,7 +382,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
             token = json.loads(resp.read()).get("token")
         console.print(f"  [green]Admin account created ({email})[/green]")
     except urllib.error.HTTPError:
-        # Account may already exist — try signin
+        # Account may already exist - try signin
         try:
             payload = json.dumps({"email": email, "password": password}).encode()
             req = urllib.request.Request(
@@ -392,7 +392,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
                 token = json.loads(resp.read()).get("token")
-            console.print("  [dim]Admin account already exists — signed in.[/dim]")
+            console.print("  [dim]Admin account already exists - signed in.[/dim]")
         except Exception as e:
             console.print(f"  [yellow]Could not authenticate: {e}[/yellow]")
             return
@@ -401,7 +401,7 @@ def _configure_openwebui(profile, decision, state, prefs, console):
     prefs.webui_password = ""
 
     if not token:
-        console.print("  [yellow]No auth token — skipping persona setup.[/yellow]")
+        console.print("  [yellow]No auth token - skipping persona setup.[/yellow]")
         return
 
     # 2. Create personas from selected personas
@@ -538,7 +538,7 @@ def _configure_aliases(profile, decision, state, prefs, console):
     """Add shell aliases for quick LLM access."""
     shell_rc = _get_shell_rc(profile)
     if not shell_rc:
-        console.print("  [yellow]Could not detect shell config file — skipping aliases.[/yellow]")
+        console.print("  [yellow]Could not detect shell config file - skipping aliases.[/yellow]")
         return
 
     marker = "# === ANKYLOSAURUS ==="
@@ -616,7 +616,7 @@ def _get_version(cmd: list[str]) -> str:
 def _install_mcp_servers(profile, decision, state, prefs, console):
     """Install filesystem and fetch MCP tool servers."""
     if not shutil.which("npm") and not shutil.which("npx"):
-        console.print("  [yellow]npm not found — skipping MCP servers.[/yellow]")
+        console.print("  [yellow]npm not found - skipping MCP servers.[/yellow]")
         return
 
     mcp_servers = [
@@ -637,7 +637,7 @@ def _install_mcp_servers(profile, decision, state, prefs, console):
                     capture_output=True, text=True,
                 )
             else:
-                # uvx-based — just verify it works
+                # uvx-based - just verify it works
                 result = subprocess.run(
                     ["uvx", package, "--help"],
                     capture_output=True, text=True, timeout=15,
@@ -664,7 +664,7 @@ def _create_mcp_launchd_agents(profile, state, console):
 
     # Only create if mcp-proxy is available
     if not shutil.which("mcp-proxy") and not shutil.which("uvx"):
-        console.print("  [dim]mcp-proxy not found — skipping launchd agents.[/dim]")
+        console.print("  [dim]mcp-proxy not found - skipping launchd agents.[/dim]")
         console.print("  [dim]Install with: pip install mcp-proxy[/dim]")
         return
 
@@ -722,14 +722,14 @@ def _create_mcp_launchd_agents(profile, state, console):
 def _configure_webui_tools(profile, decision, state, prefs, console):
     """Register MCP tool servers in Open WebUI."""
     if not state.tools.get("openwebui"):
-        console.print("  [dim]Open WebUI not installed — skipping.[/dim]")
+        console.print("  [dim]Open WebUI not installed - skipping.[/dim]")
         return
 
     base = "http://localhost:3000"
 
     # Get auth token
     if not prefs.webui_email:
-        console.print("  [yellow]No WebUI credentials — skipping tool server registration.[/yellow]")
+        console.print("  [yellow]No WebUI credentials - skipping tool server registration.[/yellow]")
         return
 
     token = None
@@ -771,7 +771,7 @@ def _configure_webui_tools(profile, decision, state, prefs, console):
             pass
 
     if not connections:
-        console.print("  [dim]No MCP servers running — skipping.[/dim]")
+        console.print("  [dim]No MCP servers running - skipping.[/dim]")
         return
 
     try:
@@ -855,7 +855,7 @@ done
         script_path.chmod(0o755)
     except PermissionError:
         # Try with sudo or skip
-        console.print("  [yellow]Cannot write to /opt/homebrew/bin/ — skipping power manager.[/yellow]")
+        console.print("  [yellow]Cannot write to /opt/homebrew/bin/ - skipping power manager.[/yellow]")
         console.print(f"  [dim]Manual: save script to {script_path} and chmod +x[/dim]")
         return
 

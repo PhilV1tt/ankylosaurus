@@ -1,4 +1,4 @@
-"""Tests for guide.py — personalized GUIDE.md generation."""
+"""Tests for guide.py - personalized GUIDE.md generation."""
 
 from ankylosaurus.modules.guide import save_guide
 from ankylosaurus.modules.state import InstallState

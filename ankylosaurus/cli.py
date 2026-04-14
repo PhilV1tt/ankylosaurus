@@ -1,4 +1,4 @@
-"""ANKYLOSAURUS — automated local LLM setup CLI."""
+"""ANKYLOSAURUS - automated local LLM setup CLI."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def _yes_callback(value: bool) -> None:
 
 def _sigint_handler(sig, frame):
     console = Console()
-    console.print("\n[yellow]Interrupted. State saved — re-run 'ankylosaurus install' to resume.[/yellow]")
+    console.print("\n[yellow]Interrupted. State saved - re-run 'ankylosaurus install' to resume.[/yellow]")
     console.print("[dim]Partial downloads may need cleanup in ~/.cache/huggingface/[/dim]")
     sys.exit(130)
 
